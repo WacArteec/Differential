@@ -102,7 +102,12 @@ Node *Copy(struct Node *node, struct Tree *tree)
         tree->size += 1;
 $$$ printf("BIG BLACK COMMENT Copy left = %p right = %p\n", node->left, node->right);
 
-        Node* node = CreateNode(NULL, Copy(node->left, tree), Copy(node->right, tree), node->type, node->value, node->oper);
+        Node* left_node  = Copy(node->left, tree);
+$$$ printf("BIG BLACK COMMENT CopyL Good\n");
+        Node* right_node = Copy(node->right, tree);
+$$$ printf("BIG BLACK COMMENT CopyR Good\n");
+
+        Node* node = CreateNode(NULL, left_node, right_node, node->type, node->value, node->oper);
 $$$ printf("BIG BLACK COMMENT Copy Good\n");
         return node;
     }
