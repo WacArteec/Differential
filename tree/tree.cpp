@@ -10,8 +10,8 @@ const char* green = "#177245";
 
 // add verificator and dump
 
-void PrintNode( FILE* stream, struct Node* leaf);
-int DotNode(FILE* dot_file, struct Node* leaf, Side agree, int parent_num);
+void PrintNode( FILE* stream, struct Node* node);
+int DotNode(FILE* dot_file, struct Node* node, Side agree, int parent_num);
 
 // add asserts
 
@@ -22,68 +22,52 @@ void Ctor(struct Tree* tree)
     tree->root = (Node*) calloc(1, sizeof(Node));
 
     tree->root->type = DEFAULT;
-    tree->root->value = {};
-
-    tree->root->parent = NULL;
-    tree->root->root_tree = tree;
+    tree->root->data = {};
 
     tree->root->right = NULL;
     tree->root->left  = NULL;
 }
 
-// char *data, left, right, parent
-
-// separate funcs for add node left or right
-
-void InsertNode(struct Node* leaf, Side side, Type type, int value, Operations oper)
+Node* CreateNum(struct Node* left, struct Node* right, float value)
 {
-    switch (side)
-    {
-        case LEFT:
-        {
-            leaf->left = CreateNode(leaf, NULL, NULL, type, value, oper);
-            break;
-        }
+    struct Node* node = (Node*) calloc(1, sizeof(Node));
+    assert(node);
 
-        case RIGHT:
-        {
-            leaf->right = CreateNode(leaf, NULL, NULL, type, value, oper);
-            break;
-        }
-
-        default:
-            break;
-    }
-
-    leaf->root_tree->size++;
-}
-
-Node* CreateNode(struct Node* parent, struct Node* left, struct Node* right, Type type, float value, Operations oper)
-{
-$$$ printf("BIG BLACK COMMENT C1 sizeof(Node) = %u \n", sizeof(Node));
-    struct Node* node = (Node*) calloc(1, sizeof(struct Node));
-$$$ assert(node);
-$$$ printf("BIG BLACK COMMENT C2 node = %p\n", node);
-
-    node->type = type;
-
-    node->value = value;
-    node->oper = oper;
+    node->type = NUM;
+    node->data.value = value;
 
     node->left  = left;
     node->right = right;
 
-    if(parent != NULL)
-    {
-        node->parent = parent;
-        node->root_tree = parent->root_tree;
-    }
-    
-    else
-    {
-        node->parent = NULL;
-        node->root_tree = NULL;
-    }
+    return node;
+
+}
+
+Node* CreateVar(struct Node* left, struct Node* right, char var)
+{
+    struct Node* node = (Node*) calloc(1, sizeof(Node));
+    assert(node);
+
+    node->type = VAR;
+    node->data.var = var;
+
+    node->left  = left;
+    node->right = right;
+
+    return node;
+
+}
+
+Node* CreateOper(struct Node* left, struct Node* right, Operations oper)
+{
+    struct Node* node = (Node*) calloc(1, sizeof(Node));
+    assert(node);
+
+    node->type = NUM;
+    node->data.oper = oper;
+
+    node->left  = left;
+    node->right = right;
 
     return node;
 }
@@ -106,21 +90,27 @@ void SaveTree(struct Tree* tree)
 // print_node(node->right)
 // )
 
-void PrintNode(FILE* stream, struct Node* leaf)
+void PrintNode(FILE* stream, struct Node* node)
 {
     assert(stream);
 
-    if(leaf != NULL)
+    if(node != NULL)
     {
-        fprintf(stream, "(");
+        fprintf(stream, "( %d ", node->type);
 
-        PrintNode(stream, leaf->left);
+        if(node->type == OPER)
+            fprintf(stream, " %d ", node->data.oper);
 
-        fprintf(stream, "%d %d", leaf->type, leaf->value);
+        else if(node->type == VAR)
+            fprintf(stream, " %c ", node->data.var);
+        
+        else if(node->type == OPER)
+            fprintf(stream, " %g ", node->data.value);
 
-        PrintNode(stream, leaf->right);
+        PrintNode(stream, node->left);
+        PrintNode(stream, node->right);
 
-        fprintf(stream, ")");
+        fprintf(stream, " )");
     }
 
     else
@@ -130,29 +120,17 @@ void PrintNode(FILE* stream, struct Node* leaf)
 
 }
 
-void DeleteNode(struct Node* leaf)
+Node* DeleteNode(struct Node* node)
 {
-    if(leaf == NULL)
-        return;
+    if(node == NULL)
+        return NULL;
 
-    if(leaf->parent != NULL)
-    {
-        if(leaf->parent->right == leaf)
-            leaf->parent->right = NULL;
+    node->right = DeleteNode(node->right);
+    node->right = DeleteNode(node->left);
 
-        else if(leaf->parent->left == leaf)
-            leaf->parent->left = NULL;
-    }
-$$$ printf("BIG BLACK COMMENT Del\n");
+    free(node);
 
-    DeleteNode(leaf->right);
-$$$ printf("BIG BLACK COMMENT DelR\n");
-    DeleteNode(leaf->left);
-$$$ printf("BIG BLACK COMMENT DelL leaf = %p\n", leaf);
-
-    free(leaf);
-$$$ printf("BIG BLACK COMMENT DelFree\n");
-    leaf = NULL;
+    return NULL;
 }
 
 void Dtor(struct Tree* tree)
@@ -189,12 +167,12 @@ $$$ printf("\n\n%d\n\n", __LINE__);
     system("Tree.dot.png");
 }
 
-int DotNode(FILE* dot_file, struct Node* leaf, Side side, int parent_num)
+int DotNode(FILE* dot_file, struct Node* node, Side side, int parent_num)
 {
     const char* color = "#000000";
     int current_num = parent_num + 1;
 
-    if(leaf == NULL)
+    if(node == NULL)
         return 0;
 
     switch (side)
@@ -221,15 +199,24 @@ int DotNode(FILE* dot_file, struct Node* leaf, Side side, int parent_num)
             break;
     }
     
-	fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: %d | value: %d | left(yes): %p | right(no): %p | parent: %p \"];\n", 
-                       parent_num + 1,                                          color,                  leaf,      leaf->type, leaf->value,    leaf->left,     leaf->right, leaf->parent);
+    if(node->type == OPER)
+	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: OPER | oper: %d | left(yes): %p | right(no): %p \"];\n", 
+                                 parent_num + 1,                                    color,                  node,                   node->data.oper,node->left,     node->right);
 
-    int left_child_num = DotNode(dot_file, leaf->left, LEFT, current_num);
+    else if(node->type == VAR)
+	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: VAR | variable: %c | left(yes): %p | right(no): %p \"];\n", 
+                                 parent_num + 1,                                    color,                  node,                      node->data.var, node->left,     node->right);
+    
+    else if(node->type == NUM)
+	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: NUM | value: %d | left(yes):  %p | right(no): %p \"];\n", 
+                                 parent_num + 1,                                    color,                  node,                   node->data.value,node->left,     node->right);
+    
+    int left_child_num = DotNode(dot_file, node->left, LEFT, current_num);
 
     if(left_child_num != 0)
         fprintf(dot_file, "\tnode%d -> node%d [color = \"#000000\"\"]\n\n", current_num, left_child_num);
 
-    int right_child_num = DotNode(dot_file, leaf->right, RIGHT, left_child_num);
+    int right_child_num = DotNode(dot_file, node->right, RIGHT, left_child_num);
     
     if(right_child_num != 0)
         fprintf(dot_file, "\tnode%d -> node%d [color = \"#000000\"\"]\n\n", current_num, right_child_num);

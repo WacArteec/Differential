@@ -42,47 +42,47 @@ Node *Diff(struct Node *node, struct Tree *tree)
     {
         tree->size += 0;
 
-        DeleteNode(node);
+        node = DeleteNode(node);
 
-        return CreateNode(NULL, NULL, NULL, NUM, 0, DEF_OPER);
+        return CreateNum(NULL, NULL, 0);
     }
 
     else if (node->type == VAR)
     {
         tree->size += 0;
 
-        DeleteNode(node);
+        node = DeleteNode(node);
 
-        return CreateNode(NULL, NULL, NULL, NUM, 1, DEF_OPER);
+        return CreateNum(NULL, NULL, 1);
     }
 
     else if (node->type == OPER)
     {
-        if (node->oper == ADD)
+        if (node->data.oper == ADD)
             return DiffAdd(node, tree);
 
-        else if (node->oper == SUB)
+        else if (node->data.oper == SUB)
             return DiffSub(node, tree);
 
-        else if (node->oper == MULT)
+        else if (node->data.oper == MULT)
             return DiffMult(node, tree);
 
-        else if (node->oper == DIV)
+        else if (node->data.oper == DIV)
             return DiffDiv(node, tree);
 
-        else if (node->oper == POW)
+        else if (node->data.oper == POW)
             return DiffPow(node, tree);
 
-        else if (node->oper == LOG)
+        else if (node->data.oper == LOG)
             return DiffLog(node, tree);
 
-        else if (node->oper == SIN)
+        else if (node->data.oper == SIN)
             return DiffSin(node, tree);
 
-        else if (node->oper == COS)
+        else if (node->data.oper == COS)
             return DiffCos(node, tree);
 
-        else if (node->oper == TAN)
+        else if (node->data.oper == TAN)
             return DiffTan(node, tree);
     }
 
@@ -97,19 +97,29 @@ Node *Diff(struct Node *node, struct Tree *tree)
 
 Node *Copy(struct Node *node, struct Tree *tree)
 {
+    Node* new_node = NULL;
+
     if (node != NULL)
     {
         tree->size += 1;
 $$$ printf("BIG BLACK COMMENT Copy left = %p right = %p\n", node->left, node->right);
 
         Node* left_node  = Copy(node->left, tree);
-$$$ printf("BIG BLACK COMMENT CopyL Good\n");
+$$$ printf("BIG BLACK COMMENT CopyLeft = %p Good\n", left_node);
         Node* right_node = Copy(node->right, tree);
-$$$ printf("BIG BLACK COMMENT CopyR Good\n");
+$$$ printf("BIG BLACK COMMENT CopyRight = %p Good\n", right_node);
+    
 
-        Node* node = CreateNode(NULL, left_node, right_node, node->type, node->value, node->oper);
+    if(node->type == NUM)
+        new_node = CreateNum(left_node, right_node, node->data.value);
+
+    else if(node->type == VAR)
+        new_node = CreateVar(left_node, right_node, node->data.var);
+
+    else if(node->type == OPER)
+        new_node = CreateOper(left_node, right_node, node->data.oper);
+
 $$$ printf("BIG BLACK COMMENT Copy Good\n");
-        return node;
     }
 
     else
@@ -123,10 +133,10 @@ Node *DiffAdd(struct Node *node, struct Tree *tree)
 
     tree->size += 0;
 $$$ printf("BIG BLACK COMMENT D\n");
-    DeleteNode(node);
+    node = DeleteNode(node);
 $$$ printf("BIG BLACK COMMENT D\n");
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, ADD);
+    return CreateOper(diff_left, diff_right, ADD);
 }
 
 Node *DiffSub(struct Node *node, struct Tree *tree)
@@ -136,141 +146,141 @@ Node *DiffSub(struct Node *node, struct Tree *tree)
 
     tree->size += 0;
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, SUB);
+    return CreateOper(diff_left, diff_right, SUB);
 }
 
 Node *DiffMult(struct Node *node, struct Tree *tree)
 {
     Node *diff_diff_left = Diff(node->left, tree);
-    Node *diff_left = CreateNode(NULL, diff_diff_left, Copy(node->right, tree), OPER, 0, MULT);
+    Node *diff_left = CreateOper(diff_diff_left, Copy(node->right, tree), MULT);
 
     Node *diff_diff_right = Diff(node->right, tree);
-    Node *diff_right = CreateNode(NULL, Copy(node->left, tree), diff_diff_right, OPER, 0, MULT);
+    Node *diff_right = CreateOper(Copy(node->left, tree), diff_diff_right, MULT);
 
     tree->size += 2; // from 3( A * B ) to 7( A' * B + A * B' ) - 2 copies
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, ADD);
+    return CreateOper(diff_left, diff_right, ADD);
 }
 
 Node *DiffDiv(struct Node *node, struct Tree *tree)
 {
     Node *diff_nom_left = Diff(node->left, tree);
-    Node *nom_left = CreateNode(NULL, diff_nom_left, Copy(node->right, tree), OPER, 0, MULT);
+    Node *nom_left = CreateOper(diff_nom_left, Copy(node->right, tree), MULT);
 
     Node *diff_nom_right = Diff(node->right, tree);
-    Node *nom_right = CreateNode(NULL, Copy(node->left, tree), diff_nom_right, OPER, 0, MULT);
+    Node *nom_right = CreateOper(Copy(node->left, tree), diff_nom_right, MULT);
 
-    Node *diff_left = CreateNode(NULL, nom_left, nom_right, OPER, 0, SUB);
+    Node *diff_left = CreateOper(nom_left, nom_right, SUB);
 
     Node *denom_left = Copy(node->right, tree);
     Node *denom_right = Copy(node->right, tree);
 
-    Node *diff_right = CreateNode(NULL, denom_left, denom_right, OPER, 0, ADD);
+    Node *diff_right = CreateOper(denom_left, denom_right, ADD);
 
     tree->size += 4; // from 3 (A / B) to 11 ( (A' * B - A * B') / (B * B) ) - 4 copies
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, DIV);
+    return CreateOper(diff_left, diff_right, DIV);
 }
 
 Node *DiffPow(struct Node *node, struct Tree *tree) // некрасиво написана, но не знаю как переписать
 {
-    Node *number_e = CreateNode(NULL, NULL, NULL, NUM, e, DEF_OPER);
-    Node *ln = CreateNode(NULL, number_e, Copy(node->left, tree), OPER, 0, LOG);
+    Node *number_e = CreateNum(NULL, NULL, e);
+    Node *ln = CreateOper(number_e, Copy(node->left, tree), LOG);
 
     Node *diff_add1 = Diff(node->right, tree);
-    Node *add1 = CreateNode(NULL, ln, diff_add1, OPER, 0, MULT);
+    Node *add1 = CreateOper(ln, diff_add1, MULT);
 
     Node *diff_mult_in_add2 = Diff(node->left, tree);
-    Node *mult_in_add2 = CreateNode(NULL, Copy(node->right, tree), diff_mult_in_add2, OPER, 0, MULT);
+    Node *mult_in_add2 = CreateOper(Copy(node->right, tree), diff_mult_in_add2, MULT);
 
-    Node *add2 = CreateNode(NULL, mult_in_add2, Copy(node->left, tree), OPER, 0, DIV);
+    Node *add2 = CreateOper(mult_in_add2, Copy(node->left, tree), DIV);
 
-    Node *diff_left = CreateNode(NULL, add1, add2, OPER, 0, ADD);
+    Node *diff_left = CreateOper(add1, add2, ADD);
 
     Node *diff_right = Copy(node, tree);
 
     tree->size += 6; // from 3 ( A ^ B ) to 15 ( ( LOG(e, A) * B' + A' * B / A ) * (A ^ B) ) - 6 copies
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, MULT);
+    return CreateOper(diff_left, diff_right, MULT);
 }
 
 Node *DiffLog(struct Node *node, struct Tree *tree)
 {
     Node *diff_nom_left = Diff(node->right, tree);
-    Node *nom_left = CreateNode(NULL, diff_nom_left, Copy(node->right, tree), OPER, 0, MULT);
+    Node *nom_left = CreateOper(diff_nom_left, Copy(node->right, tree), MULT);
 
     Node *diff_nom_right = Diff(node->left, tree);
 
-    Node *nom_right_mult = CreateNode(NULL, diff_nom_right, Copy(node, tree), OPER, 0, MULT);
-    Node *nom_right = CreateNode(NULL, nom_right_mult, Copy(node->left, tree), OPER, 0, DIV);
+    Node *nom_right_mult = CreateOper(diff_nom_right, Copy(node, tree), MULT);
+    Node *nom_right = CreateOper(nom_right_mult, Copy(node->left, tree), DIV);
 
-    Node *diff_left = CreateNode(NULL, nom_left, nom_right, OPER, 0, SUB);
+    Node *diff_left = CreateOper(nom_left, nom_right, SUB);
 
-    Node *number_e = CreateNode(NULL, NULL, NULL, NUM, e, DEF_OPER);
+    Node *number_e = CreateNum(NULL, NULL, e);
     Node *denom_right = Copy(node->right, tree);
 
-    Node *diff_right = CreateNode(NULL, number_e, denom_right, OPER, 0, ADD);
+    Node *diff_right = CreateOper(number_e, denom_right, ADD);
 
     tree->size += 6; // from 3 log(A, B) to 15 ( (B' / B - A' * log(A, B) / A) / log(e, B) ) - 6 copies
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, DIV);
+    return CreateOper(diff_left, diff_right, DIV);
 }
 
 Node *DiffSin(struct Node *node, struct Tree *tree)
 {
-    Node *num_1 = CreateNode(NULL, NULL, NULL, NUM, 1, DEF_OPER);
+    Node *num_1 = CreateNum(NULL, NULL, 1);
 
     Node *diff_diff_left = Diff(node->left, tree);
-    Node *diff_left = CreateNode(NULL, diff_diff_left, num_1, OPER, 0, MULT);
+    Node *diff_left = CreateOper(diff_diff_left, num_1, MULT);
 
-    Node *diff_right = CreateNode(NULL, NULL, Copy(node->right, tree), OPER, 0, COS);
+    Node *diff_right = CreateOper(NULL, Copy(node->right, tree), COS);
 
     tree->size += 3; // from 2( sin(A) ) to 6( 1 * A' * cos(A) ) - 1 copy
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, MULT);
+    return CreateOper(diff_left, diff_right, MULT);
 }
 
 Node *DiffCos(struct Node *node, struct Tree *tree)
 {
-    Node *num_minus1 = CreateNode(NULL, NULL, NULL, NUM, -1, DEF_OPER);
+    Node *num_minus1 = CreateNum(NULL, NULL, -1);
     Node *diff_in_diff_left = Diff(node->left, tree);
-    Node *diff_left = CreateNode(NULL, diff_in_diff_left, num_minus1, OPER, 0, MULT);
+    Node *diff_left = CreateOper(diff_in_diff_left, num_minus1, MULT);
 
-    Node *diff_right = CreateNode(NULL, NULL, Copy(node->right, tree), OPER, 0, SIN);
+    Node *diff_right = CreateOper(NULL, Copy(node->right, tree), SIN);
 
     tree->size += 3; // from 2( cos(A) ) to 6( (-1) * A' * sin(A) ) - 1 copy
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, MULT);
+    return CreateOper(diff_left, diff_right, MULT);
 }
 
 Node *DiffTan(struct Node *node, struct Tree *tree)
 {
     Node *diff_left = Diff(node->left, tree);
 
-    Node *cos1 = CreateNode(NULL, NULL, Copy(node->right, tree), OPER, 0, COS);
-    Node *cos2 = CreateNode(NULL, NULL, Copy(node->right, tree), OPER, 0, COS);
+    Node *cos1 = CreateOper(NULL, Copy(node->right, tree), COS);
+    Node *cos2 = CreateOper(NULL, Copy(node->right, tree), COS);
 
-    Node *diff_right = CreateNode(NULL, cos1, cos2, OPER, 0, MULT);
+    Node *diff_right = CreateOper(cos1, cos2, MULT);
 
     tree->size += 3; // from 2( tan(A) ) to 7( A' / (cos(A) * cos(A)) ) - 2 copies
 
-    DeleteNode(node);
+    node = DeleteNode(node);
 
-    return CreateNode(NULL, diff_left, diff_right, OPER, 0, DIV);
+    return CreateOper(diff_left, diff_right, DIV);
 }
 
 int CmpDoubles(double num1, double num2, double accuracy)
@@ -307,22 +317,22 @@ Node *TreeSimpler(struct Node *node, struct Tree *tree)
     {
         if (node->left->left == NULL && node->left->right == NULL && node->right->left == NULL && node->right->right == NULL)
         {
-            if (node->oper == ADD)
+            if (node->data.oper == ADD)
                 AddSimpler(node, tree);
 
-            else if (node->oper == SUB)
+            else if (node->data.oper == SUB)
                 SubSimpler(node, tree);
 
-            else if (node->oper == MULT)
+            else if (node->data.oper == MULT)
                 MultSimpler(node, tree);
 
-            else if (node->oper == DIV)
+            else if (node->data.oper == DIV)
                 DivSimpler(node, tree);
 
-            else if (node->oper == POW)
+            else if (node->data.oper == POW)
                 PowSimpler(node, tree);
 
-            else if (node->oper == LOG)
+            else if (node->data.oper == LOG)
                 LogSimpler(node, tree);
 
             else
@@ -344,34 +354,31 @@ Node *TreeSimpler(struct Node *node, struct Tree *tree)
 Node *AddSimpler(struct Node *node, struct Tree *tree)
 {
 $$$ printf("BIG BLACK COMMENT AS\n");
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
 $$$ printf("BIG BLACK COMMENT AS1\n");
-        Node *num = CreateNode(NULL, NULL, NULL, NUM, 2, DEF_OPER);
+        Node *num = CreateNum(NULL, NULL, 2);
         Node *var = Copy(node->right, tree);
 
-        DeleteNode(node);
+        node = DeleteNode(node);
 
-        return CreateNode(NULL, num, var, OPER, 0, MULT);
+        return CreateOper(num, var, MULT);
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 0, AIM) == 0 || CmpDoubles(node->left->value, 0, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
     {
 $$$ printf("BIG BLACK COMMENT AS2\n");
         Node* newnode = NULL;
-        if (node->left->type == VAR && CmpDoubles(node->right->value, 0, AIM) == 0)
+        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
             newnode = Copy(node->left, tree);
 
 $$$ printf("BIG BLACK COMMENT AS2.1\n");
 
-        if (node->right->type == VAR && CmpDoubles(node->left->value, 0, AIM) == 0)
+        if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
             newnode = Copy(node->right, tree);
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         node = newnode;
         return node;
@@ -380,16 +387,12 @@ $$$ printf("BIG BLACK COMMENT AS2.1\n");
     else if (node->left->type == NUM || node->right->type == NUM)
     {
 $$$ printf("BIG BLACK COMMENT AS3\n");
-        node->value = node->left->value + node->right->value;
+        node->data.value = node->left->data.value + node->right->data.value;
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -400,40 +403,33 @@ $$$ printf("BIG BLACK COMMENT AS4\n");
 
 Node *SubSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        node->value = 0;
+        node->data.value = 0;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 0, AIM) == 0 || CmpDoubles(node->left->value, 0, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
     {
-        if (node->left->type == VAR && CmpDoubles(node->right->value, 0, AIM) == 0)
+        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
         {
             node = Copy(node->left, tree);
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+            node->left  = DeleteNode(node->left);
+            node->right = DeleteNode(node->right);
         }
 
-        else if (node->right->type == VAR && CmpDoubles(node->left->value, 0, AIM) == 0)
+        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
         {
-            node->oper = MULT;
+            node->data.oper = MULT;
 
-            node->left->value = -1;
+            node->left->data.value = -1;
         }
 
         return node;
@@ -441,16 +437,12 @@ Node *SubSimpler(struct Node *node, struct Tree *tree)
 
     else if (node->left->type == NUM || node->right->type == NUM)
     {
-        node->value = node->left->value - node->right->value;
+        node->data.value = node->left->data.value - node->right->data.value;
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -460,60 +452,49 @@ Node *SubSimpler(struct Node *node, struct Tree *tree)
 
 Node *MultSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
-        node->oper = POW;
+        node->data.oper = POW;
 
         node->right->type = NUM;
-        node->right->value = 2;
+        node->right->data.value = 2;
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 0, AIM) == 0 || CmpDoubles(node->left->value, 0, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
     {
         node->type = VAR;
-        node->value = node->right->value + node->left->value;
-        node->oper = DEF_OPER;
+        node->data.value = node->right->data.value + node->left->data.value;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 1, AIM) == 0 || CmpDoubles(node->left->value, 1, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 1, AIM) == 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0))
     {
-        if (node->left->type == VAR && CmpDoubles(node->right->value, 1, AIM) == 0)
+        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
             node = Copy(node->left, tree);
 
-        if (node->right->type == VAR && CmpDoubles(node->left->value, 1, AIM) == 0)
+        if (node->right->type == VAR && CmpDoubles(node->left->data.value, 1, AIM) == 0)
             node = Copy(node->right, tree);
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
     else if (node->left->type == NUM || node->right->type == NUM)
     {
-        node->value = node->left->value * node->right->value;
+        node->data.value = node->left->data.value * node->right->data.value;
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -523,70 +504,55 @@ Node *MultSimpler(struct Node *node, struct Tree *tree)
 
 Node *DivSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
         node->type = NUM;
-        node->oper = DEF_OPER;
-        node->value = 1;
+        node->data.value = 1;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 0, AIM) == 0 || CmpDoubles(node->left->value, 0, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
     {
-        if (node->left->type == VAR && CmpDoubles(node->right->value, 0, AIM) == 0)
+        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
             MathErr(node, DIV_0);
 
-        else if (node->right->type == VAR && CmpDoubles(node->left->value, 0, AIM) == 0)
+        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
         {
             node->type = NUM;
-            node->oper = DEF_OPER;
-            node->value = 0;
+            node->data.value = 0;
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+            node->left  = DeleteNode(node->left);
+            node->right = DeleteNode(node->right);
 
             return node;
         }
     }
 
-    else if (node->left->type == VAR && CmpDoubles(node->right->value, 1, AIM) == 0)
+    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
     {
         node = Copy(node->left, tree);
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
     else if (node->left->type == NUM || node->right->type == NUM)
     {
-        if (CmpDoubles(node->right->value, 0, AIM) == 0)
+        if (CmpDoubles(node->right->data.value, 0, AIM) == 0)
             MathErr(node, DIV_0);
 
-        node->value = node->left->value * node->right->value;
+        node->data.value = node->left->data.value * node->right->data.value;
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -596,71 +562,56 @@ Node *DivSimpler(struct Node *node, struct Tree *tree)
 
 Node *PowSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
         node->type = NUM;
-        node->oper = DEF_OPER;
-        node->value = 1;
+        node->data.value = 1;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->value, 0, AIM) == 0 || CmpDoubles(node->left->value, 0, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
     {
-        if (node->left->type == VAR && CmpDoubles(node->right->value, 0, AIM) == 0)
+        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
             MathErr(node, DIV_0);
 
-        else if (node->right->type == VAR && CmpDoubles(node->left->value, 0, AIM) == 0)
+        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
         {
             node->type = NUM;
 
-            node->oper = DEF_OPER;
-            node->value = 0;
+            node->data.value = 0;
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
             return node;
         }
     }
 
-    else if (node->left->type == VAR && CmpDoubles(node->right->value, 1, AIM) == 0)
+    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
     {
         node = Copy(node->left, tree);
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
     else if (node->left->type == NUM || node->right->type == NUM)
     {
-        if (node->left->value <= 0 && node->right->value <= 0)
+        if (node->left->data.value <= 0 && node->right->data.value <= 0)
             MathErr(node, POW_0);
 
-        node->value = pow(node->left->value, node->right->value);
+        node->data.value = pow(node->left->data.value, node->right->data.value);
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -670,57 +621,45 @@ Node *PowSimpler(struct Node *node, struct Tree *tree)
 
 Node *LogSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->value, node->right->value, AIM) == 0)
+    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
     {
         node->type = NUM;
-        node->oper = DEF_OPER;
-        node->value = 1;
+        node->data.value = 1;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
-    else if ((node->left->type == VAR || node->right->type == VAR) && (node->right->value <= 0 || node->left->value <= 0 || CmpDoubles(node->left->value, 1, AIM) == 0))
+    else if ((node->left->type == VAR || node->right->type == VAR) && (node->right->data.value <= 0 || node->left->data.value <= 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0))
     {
         MathErr(node, LOG_0);
     }
 
-    else if (node->left->type == VAR && CmpDoubles(node->right->value, 1, AIM) == 0)
+    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
     {
         node->type = NUM;
 
-        node->oper = DEF_OPER;
-        node->value = 0;
+        node->data.value = 0;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
 
     else if (node->left->type == NUM || node->right->type == NUM)
     {
-        if (node->left->value <= 0 || node->right->value <= 0 || CmpDoubles(node->left->value, 1, AIM) == 0 || CmpDoubles(node->right->value, 1, AIM) == 0)
+        if (node->left->data.value <= 0 || node->right->data.value <= 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0 || CmpDoubles(node->right->data.value, 1, AIM) == 0)
             MathErr(node, LOG_0);
 
-        node->value = log(node->right->value) / log(node->left->value);
+        node->data.value = log(node->right->data.value) / log(node->left->data.value);
 
         node->type = NUM;
-        node->oper = DEF_OPER;
 
-        DeleteNode(node->left);
-        node->left = NULL;
-
-        DeleteNode(node->right);
-        node->right = NULL;
+        node->left  = DeleteNode(node->left);
+        node->right = DeleteNode(node->right);
 
         return node;
     }
@@ -730,7 +669,7 @@ Node *LogSimpler(struct Node *node, struct Tree *tree)
 
 Node *TrigSimpler(struct Node *node, struct Tree *tree)
 {
-    if (node->oper == SIN)
+    if (node->data.oper == SIN)
     {
         if (node->right->type == VAR)
         {
@@ -739,22 +678,18 @@ Node *TrigSimpler(struct Node *node, struct Tree *tree)
 
         else if (node->right->type == NUM)
         {
-            node->value = sin(node->right->value);
+            node->data.value = sin(node->right->data.value);
 
             node->type = NUM;
-            node->oper = DEF_OPER;
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+            node->left  = DeleteNode(node->left);
+            node->right = DeleteNode(node->right);
 
             return node;
         }
     }
 
-    else if (node->oper == COS)
+    else if (node->data.oper == COS)
     {
         if (node->right->type == VAR)
         {
@@ -763,22 +698,18 @@ Node *TrigSimpler(struct Node *node, struct Tree *tree)
 
         else if (node->right->type == NUM)
         {
-            node->value = cos(node->right->value);
+            node->data.value = cos(node->right->data.value);
 
             node->type = NUM;
-            node->oper = DEF_OPER;
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+            node->left  = DeleteNode(node->left);
+            node->right = DeleteNode(node->right);
 
             return node;
         }
     }
 
-    else if (node->oper == TAN)
+    else if (node->data.oper == TAN)
     {
         if (node->right->type == VAR)
         {
@@ -787,16 +718,12 @@ Node *TrigSimpler(struct Node *node, struct Tree *tree)
 
         else if (node->right->type == NUM)
         {
-            node->value = tan(node->right->value);
+            node->data.value = tan(node->right->data.value);
 
             node->type = NUM;
-            node->oper = DEF_OPER;
 
-            DeleteNode(node->left);
-            node->left = NULL;
-
-            DeleteNode(node->right);
-            node->right = NULL;
+            node->left  = DeleteNode(node->left);
+            node->right = DeleteNode(node->right);
 
             return node;
         }

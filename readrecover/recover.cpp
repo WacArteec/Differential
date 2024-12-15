@@ -36,7 +36,7 @@ Node* GetBracket(struct Token* tokens, struct Tree* tree);
 Node* GetNumVar (struct Token* tokens, struct Tree* tree);
 void SyntaxErr(struct Token* tokens);
 
-unsigned int pos = 0;
+unsigned int POS = 0;
 
 Node* Parser(char* text, struct Tree* tree)
 {
@@ -48,7 +48,7 @@ $$$ printf("BIG BLACK COMMENT4\n");
     Node* node = GetAddSub(tokens, tree);
 $$$ printf("BIG BLACK COMMENT5\n");
 
-    if(tokens[pos].oper != END)
+    if(tokens[POS].oper != END)
         SyntaxErr(tokens);
 
     free(tokens);
@@ -67,6 +67,173 @@ char* LowString(char* str)
     }
 
     return str;
+}
+
+Node* GetAddSub(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs1 pos = %u\n", POS);
+    Node* node = GetMulDiv(tokens, tree);
+$$$ printf("BIG BLACK COMMENTs1.1 pos = %u\n", POS);
+
+    while(tokens[POS].oper == ADD || tokens[POS].oper == SUB)
+    {
+$$$ printf("ADD/SUB s1 pos = %u\n", POS);
+        int op = tokens[POS].oper;
+        POS += 1;
+
+        Node* node2 = GetMulDiv(tokens, tree);
+
+        if(op == ADD)
+        {
+$$$ printf("ADD/SUB s1.1 pos = %u\n", POS);
+            return CreateOper(node, node2, ADD);
+        }
+
+        else
+            return CreateOper(node, node2, SUB);
+    }
+
+    return node;
+}
+
+Node* GetMulDiv(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs2 pos = %u\n", POS);
+    Node* node = GetTrig(tokens, tree);
+$$$ printf("BIG BLACK COMMENTs2.1 pos = %u\n", POS);
+
+    while(tokens[POS].oper == MULT || tokens[POS].oper == DIV)
+    {
+        int op = tokens[POS].oper;
+        POS += 1;
+
+        Node* node2 = GetTrig(tokens, tree);
+        
+
+        if(op == MULT)
+            return CreateOper(node, node2, MULT);
+
+        else
+            return CreateOper(node, node, DIV);
+    }
+    
+    return node;
+}
+
+Node* GetTrig(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs3 pos = %u\n", POS);
+    if(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
+    {
+        while(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
+        {
+            int op = tokens[POS].oper;
+            POS += 1;
+
+            Node* node = GetLog(tokens, tree);
+
+            if(op == SIN)
+                return CreateOper(NULL, node, SIN);
+
+            else if(op == COS)
+                return CreateOper(NULL, node, COS);
+
+            else
+                return CreateOper(NULL, node, TAN);
+        }
+    }
+
+    Node* node = GetLog(tokens, tree);
+$$$ printf("BIG BLACK COMMENTs3.1 pos = %u\n", POS);
+    return node;
+}
+
+Node* GetLog(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs4 pos = %u\n", POS);
+    Node* node = GetDeg(tokens, tree);
+$$$ printf("BIG BLACK COMMENTs4.1 pos = %u\n", POS);
+
+    while(tokens[POS].oper == LOG)
+    {
+        POS += 1;
+
+        Node* node2 = GetDeg(tokens, tree);
+
+        return CreateOper(node, node2, LOG);
+    }
+    return node;
+}
+
+Node* GetDeg(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs5 pos = %u\n", POS);
+    Node* node = GetBracket(tokens, tree);
+$$$ printf("BIG BLACK COMMENTs5.1 pos = %u\n", POS);
+
+    while(tokens[POS].oper == POW)
+    {
+        POS += 1;
+
+        Node* node2 = GetBracket(tokens, tree);
+
+        return CreateOper(node, node2, POW);
+    }
+    return node;
+}
+
+Node* GetBracket(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
+    if(tokens[POS].oper == OP_BR)
+    {
+        POS += 1;
+
+        Node* node = GetAddSub(tokens, tree);
+
+        if(tokens[POS].oper != CL_BR)
+            SyntaxErr(tokens);
+    
+        POS += 1;
+        return node;
+    }
+
+    else
+        return GetNumVar(tokens, tree);
+}
+
+Node* GetNumVar(struct Token* tokens, struct Tree* tree)
+{
+$$$ assert(tokens);
+$$$ printf("BIG BLACK COMMENTs7 pos = %u\n", POS);
+
+    if(tokens[POS].type == VAR)
+    {
+        POS += 1;
+$$$ printf("VAR pos = %u\n", POS);
+
+        Node* node = CreateVar(NULL, NULL, tokens[POS - 1].var);
+$$$ printf("VAR2 pos = %u\n", POS);
+        return node;
+    }
+
+    if(tokens[POS].type == NUM)
+    {
+        POS += 1;
+$$$ printf("NUM pos = %u\n", POS);
+        Node* node = CreateNum(NULL, NULL, tokens[POS - 1].value);
+        return node;
+    }
+
+    else
+        return NULL;
+
 }
 
 Token* LexicalAnalis(char* text)
@@ -255,194 +422,10 @@ void LexicErr(unsigned int line, unsigned int symbol)
     exit(1);
 }
 
-Node* GetAddSub(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs1 pos = %u\n", pos);
-    Node* node = GetMulDiv(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs1.1 pos = %u\n", pos);
-
-    while(tokens[pos].oper == ADD || tokens[pos].oper == SUB)
-    {
-$$$ printf("ADD/SUB s1 pos = %u\n", pos);
-        int op = tokens[pos].oper;
-        pos += 1;
-
-        Node* node2 = GetMulDiv(tokens, tree);
-
-        if(op == ADD)
-        {
-$$$ printf("ADD/SUB s1.1 pos = %u\n", pos);
-            return CreateNode(NULL, node, node2, OPER, 0, ADD);
-        }
-
-        else
-            return CreateNode(NULL, node, node2, OPER, 0, SUB);
-    }
-
-    return node;
-}
-
-Node* GetMulDiv(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs2 pos = %u\n", pos);
-    Node* node = GetTrig(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs2.1 pos = %u\n", pos);
-
-    while(tokens[pos].oper == MULT || tokens[pos].oper == DIV)
-    {
-        int op = tokens[pos].oper;
-        pos++;
-
-        Node* node2 = GetTrig(tokens, tree);
-        
-
-        if(op == MULT)
-            return CreateNode(NULL, node, node2, OPER, 0, MULT);
-
-        else
-        {
-            if(node2->value != 0)
-                return CreateNode(NULL, node, node, OPER, 0, DIV);
-            
-            else
-                pos--;
-        }
-    }
-    
-    return node;
-}
-
-Node* GetTrig(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs3 pos = %u\n", pos);
-    if(tokens[pos].oper == SIN || tokens[pos].oper == COS || tokens[pos].oper == TAN)
-    {
-        while(tokens[pos].oper == SIN || tokens[pos].oper == COS || tokens[pos].oper == TAN)
-        {
-            int op = tokens[pos].oper;
-            pos += 1;
-
-            Node* node = GetLog(tokens, tree);
-
-            if(op == SIN)
-                return CreateNode(NULL, NULL, node, OPER, 0, SIN);
-
-            else if(op == COS)
-                return CreateNode(NULL, NULL, node, OPER, 0, COS);
-
-            else
-                return CreateNode(NULL, NULL, node, OPER, 0, TAN);
-        }
-    }
-
-    Node* node = GetLog(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs3.1 pos = %u\n", pos);
-    return node;
-}
-
-Node* GetLog(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs4 pos = %u\n", pos);
-    Node* node = GetDeg(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs4.1 pos = %u\n", pos);
-
-    while(tokens[pos].oper == LOG)
-    {
-        pos += 1;
-
-        Node* node2 = GetDeg(tokens, tree);
-
-        if(node->value > 0 && node2->value > 0 && node2->value != 0)
-        {
-                return CreateNode(NULL, node, node2, OPER, 0, LOG);
-        }
-            
-        else
-            pos -= 1;
-    }
-    return node;
-}
-
-Node* GetDeg(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs5 pos = %u\n", pos);
-    Node* node = GetBracket(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs5.1 pos = %u\n", pos);
-
-    while(tokens[pos].oper == POW)
-    {
-        pos += 1;
-
-        Node* node2 = GetBracket(tokens, tree);
-
-        if(node->value != 0 || node2->value > 0)
-            return CreateNode(NULL, node, node2, OPER, 0, POW);
-                
-        else
-            pos -= 1;
-
-    }
-    return node;
-}
-
-Node* GetBracket(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs6 pos = %u\n", pos);
-    if(tokens[pos].oper == OP_BR)
-    {
-        pos += 1;
-
-        Node* node = GetAddSub(tokens, tree);
-
-        if(tokens[pos].oper != CL_BR)
-            SyntaxErr(tokens);
-    
-        pos += 1;
-        return node;
-    }
-
-    else
-        return GetNumVar(tokens, tree);
-}
-
-Node* GetNumVar(struct Token* tokens, struct Tree* tree)
-{
-$$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs7 pos = %u\n", pos);
-
-    if(tokens[pos].type == VAR)
-    {
-        pos += 1;
-$$$ printf("VAR pos = %u\n", pos);
-
-        Node* node = CreateNode(NULL, NULL, NULL, VAR, (double) tokens[pos - 1].var, DEF_OPER);
-$$$ printf("VAR2 pos = %u\n", pos);
-        return node;
-    }
-
-    if(tokens[pos].type == NUM)
-    {
-        pos += 1;
-$$$ printf("NUM pos = %u\n", pos);
-        Node* node = CreateNode(NULL, NULL, NULL, NUM, tokens[pos - 1].value, DEF_OPER);
-        return node;
-    }
-
-    else
-        return NULL;
-
-}
-
 void SyntaxErr(struct Token* tokens)
 {
 $$$ assert(tokens);
-    printf("error on: line = %u symbol = %u\n", tokens[pos].line, tokens[pos].symbol);
+    printf("error on: line = %u symbol = %u\n", tokens[POS].line, tokens[POS].symbol);
 
     exit(1);
 }

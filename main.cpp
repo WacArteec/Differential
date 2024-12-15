@@ -20,13 +20,19 @@ $$$ printf("BIG BLACK COMMENT c1\n");
 
     tree.root = TreeSimpler(tree.root, &tree);
 $$$ printf("BIG BLACK COMMENT d\n");
+    PrintNode(stdout, tree.root);
 
     tree.root = Diff(tree.root, &tree);
-$$$ printf("BIG BLACK COMMENT e\n");
+$$$ printf("\nBIG BLACK COMMENT e\n");
+
+    tree.root = TreeSimpler(tree.root, &tree);
+$$$ printf("BIG BLACK COMMENT g\n");
 
     PrintNode(stdout, tree.root);
-$$$ printf("BIG BLACK COMMENT f\n");
+$$$ printf("\nBIG BLACK COMMENT f\n");
+
     
     printf("%s", text);
+
     return 0;
 }
