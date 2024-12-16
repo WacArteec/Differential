@@ -15,6 +15,7 @@ enum Error
 };
 
 Node *Copy(struct Node *node, struct Tree *tree);
+Node *Diff   (struct Node *node, struct Tree *tree);
 Node *DiffAdd(struct Node *node, struct Tree *tree);
 Node *DiffSub(struct Node *node, struct Tree *tree);
 Node *DiffMult(struct Node *node, struct Tree *tree);
@@ -36,54 +37,64 @@ Node *LogSimpler(struct Node *node, struct Tree *tree);
 Node *TrigSimpler(struct Node *node, struct Tree *tree);
 void MathErr(struct Node *node, Error error);
 
+Node* DiffTree(struct Node *node, struct Tree *tree)
+{
+    Node* new_node = Diff(node, tree);
+
+    node = DeleteNode(node);
+$$$ printf("new_node = %p\n", new_node);
+
+    return new_node;
+}
+
 Node *Diff(struct Node *node, struct Tree *tree)
 {
+    Node* new_node = NULL;
+
     if (node->type == NUM)
     {
+$$$ printf("diff num\n");
         tree->size += 0;
 
-        node = DeleteNode(node);
-
-        return CreateNum(NULL, NULL, 0);
+        new_node = CreateNum(NULL, NULL, 0);
     }
 
     else if (node->type == VAR)
     {
+$$$ printf("diff var\n");
         tree->size += 0;
 
-        node = DeleteNode(node);
-
-        return CreateNum(NULL, NULL, 1);
+        new_node = CreateNum(NULL, NULL, 1);
     }
 
     else if (node->type == OPER)
     {
         if (node->data.oper == ADD)
-            return DiffAdd(node, tree);
+            new_node = DiffAdd(node, tree);
 
         else if (node->data.oper == SUB)
-            return DiffSub(node, tree);
+            new_node = DiffSub(node, tree);
 
         else if (node->data.oper == MULT)
-            return DiffMult(node, tree);
+            new_node = DiffMult(node, tree);
 
         else if (node->data.oper == DIV)
-            return DiffDiv(node, tree);
+            new_node = DiffDiv(node, tree);
 
         else if (node->data.oper == POW)
-            return DiffPow(node, tree);
+            new_node = DiffPow(node, tree);
 
         else if (node->data.oper == LOG)
-            return DiffLog(node, tree);
+            new_node = DiffLog(node, tree);
 
         else if (node->data.oper == SIN)
-            return DiffSin(node, tree);
+            new_node = DiffSin(node, tree);
 
         else if (node->data.oper == COS)
-            return DiffCos(node, tree);
+            new_node = DiffCos(node, tree);
 
         else if (node->data.oper == TAN)
-            return DiffTan(node, tree);
+            new_node = DiffTan(node, tree);
     }
 
     else
@@ -92,7 +103,7 @@ Node *Diff(struct Node *node, struct Tree *tree)
         exit(1);
     }
 
-    return NULL;
+    return node;
 }
 
 Node *Copy(struct Node *node, struct Tree *tree)
@@ -107,19 +118,20 @@ $$$ printf("BIG BLACK COMMENT Copy left = %p right = %p\n", node->left, node->ri
         Node* left_node  = Copy(node->left, tree);
 $$$ printf("BIG BLACK COMMENT CopyLeft = %p Good\n", left_node);
         Node* right_node = Copy(node->right, tree);
-$$$ printf("BIG BLACK COMMENT CopyRight = %p Good\n", right_node);
-    
+$$$ printf("BIG BLACK COMMENT CopyRight = %p Good\n", right_node);    
 
-    if(node->type == NUM)
-        new_node = CreateNum(left_node, right_node, node->data.value);
+        if(node->type == NUM)
+            new_node = CreateNum(left_node, right_node, node->data.value);
 
-    else if(node->type == VAR)
-        new_node = CreateVar(left_node, right_node, node->data.var);
+        else if(node->type == VAR)
+            new_node = CreateVar(left_node, right_node, node->data.var);
 
-    else if(node->type == OPER)
-        new_node = CreateOper(left_node, right_node, node->data.oper);
+        else if(node->type == OPER)
+            new_node = CreateOper(left_node, right_node, node->data.oper);
 
 $$$ printf("BIG BLACK COMMENT Copy Good\n");
+
+        return new_node;
     }
 
     else
@@ -128,13 +140,9 @@ $$$ printf("BIG BLACK COMMENT Copy Good\n");
 
 Node *DiffAdd(struct Node *node, struct Tree *tree)
 {
+$$$ printf("diff add\n");
     Node *diff_left  = Diff(node->left, tree);
     Node *diff_right = Diff(node->right, tree);
-
-    tree->size += 0;
-$$$ printf("BIG BLACK COMMENT D\n");
-    node = DeleteNode(node);
-$$$ printf("BIG BLACK COMMENT D\n");
 
     return CreateOper(diff_left, diff_right, ADD);
 }
@@ -144,15 +152,12 @@ Node *DiffSub(struct Node *node, struct Tree *tree)
     Node *diff_left = Diff(node->left, tree);
     Node *diff_right = Diff(node->right, tree);
 
-    tree->size += 0;
-
-    node = DeleteNode(node);
-
     return CreateOper(diff_left, diff_right, SUB);
 }
 
 Node *DiffMult(struct Node *node, struct Tree *tree)
 {
+$$$ printf("diff mult\n");
     Node *diff_diff_left = Diff(node->left, tree);
     Node *diff_left = CreateOper(diff_diff_left, Copy(node->right, tree), MULT);
 
@@ -160,8 +165,6 @@ Node *DiffMult(struct Node *node, struct Tree *tree)
     Node *diff_right = CreateOper(Copy(node->left, tree), diff_diff_right, MULT);
 
     tree->size += 2; // from 3( A * B ) to 7( A' * B + A * B' ) - 2 copies
-
-    node = DeleteNode(node);
 
     return CreateOper(diff_left, diff_right, ADD);
 }
@@ -182,8 +185,6 @@ Node *DiffDiv(struct Node *node, struct Tree *tree)
     Node *diff_right = CreateOper(denom_left, denom_right, ADD);
 
     tree->size += 4; // from 3 (A / B) to 11 ( (A' * B - A * B') / (B * B) ) - 4 copies
-
-    node = DeleteNode(node);
 
     return CreateOper(diff_left, diff_right, DIV);
 }
@@ -207,8 +208,6 @@ Node *DiffPow(struct Node *node, struct Tree *tree) // некрасиво нап
 
     tree->size += 6; // from 3 ( A ^ B ) to 15 ( ( LOG(e, A) * B' + A' * B / A ) * (A ^ B) ) - 6 copies
 
-    node = DeleteNode(node);
-
     return CreateOper(diff_left, diff_right, MULT);
 }
 
@@ -231,23 +230,21 @@ Node *DiffLog(struct Node *node, struct Tree *tree)
 
     tree->size += 6; // from 3 log(A, B) to 15 ( (B' / B - A' * log(A, B) / A) / log(e, B) ) - 6 copies
 
-    node = DeleteNode(node);
-
     return CreateOper(diff_left, diff_right, DIV);
 }
 
 Node *DiffSin(struct Node *node, struct Tree *tree)
 {
-    Node *num_1 = CreateNum(NULL, NULL, 1);
-
-    Node *diff_diff_left = Diff(node->left, tree);
-    Node *diff_left = CreateOper(diff_diff_left, num_1, MULT);
+$$$ printf("VAR2 pos = \n");
+    Node *diff_left = Diff(node->right, tree);
+$$$ printf("VAR2 sin = \n");
 
     Node *diff_right = CreateOper(NULL, Copy(node->right, tree), COS);
+$$$ printf("VAR2 sin = \n");
 
     tree->size += 3; // from 2( sin(A) ) to 6( 1 * A' * cos(A) ) - 1 copy
-
-    node = DeleteNode(node);
+    
+$$$ printf("sin left = %p right = %p\n", diff_left, diff_right);
 
     return CreateOper(diff_left, diff_right, MULT);
 }
@@ -262,8 +259,6 @@ Node *DiffCos(struct Node *node, struct Tree *tree)
 
     tree->size += 3; // from 2( cos(A) ) to 6( (-1) * A' * sin(A) ) - 1 copy
 
-    node = DeleteNode(node);
-
     return CreateOper(diff_left, diff_right, MULT);
 }
 
@@ -277,8 +272,6 @@ Node *DiffTan(struct Node *node, struct Tree *tree)
     Node *diff_right = CreateOper(cos1, cos2, MULT);
 
     tree->size += 3; // from 2( tan(A) ) to 7( A' / (cos(A) * cos(A)) ) - 2 copies
-
-    node = DeleteNode(node);
 
     return CreateOper(diff_left, diff_right, DIV);
 }

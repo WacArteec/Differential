@@ -27,25 +27,25 @@ Token* LexicalAnalis(char* text);
 unsigned int WordsCounter(char* str);
 unsigned int SymbolsCounter(char* str);
 void LexicErr(unsigned int line, unsigned int symbol);
-Node* GetAddSub (struct Token* tokens, struct Tree* tree);
-Node* GetMulDiv (struct Token* tokens, struct Tree* tree);
-Node* GetTrig   (struct Token* tokens, struct Tree* tree);
-Node* GetLog    (struct Token* tokens, struct Tree* tree);
-Node* GetDeg    (struct Token* tokens, struct Tree* tree);
-Node* GetBracket(struct Token* tokens, struct Tree* tree);
-Node* GetNumVar (struct Token* tokens, struct Tree* tree);
+Node* GetAddSub (struct Token* tokens);
+Node* GetMulDiv (struct Token* tokens);
+Node* GetTrig   (struct Token* tokens);
+Node* GetLog    (struct Token* tokens);
+Node* GetDeg    (struct Token* tokens);
+Node* GetBracket(struct Token* tokens);
+Node* GetNumVar (struct Token* tokens);
 void SyntaxErr(struct Token* tokens);
 
 unsigned int POS = 0;
 
-Node* Parser(char* text, struct Tree* tree)
+Node* Parser(char* text)
 {
     text = LowString(text);
 
     Token* tokens = LexicalAnalis(text);
 $$$ printf("BIG BLACK COMMENT4\n");
 
-    Node* node = GetAddSub(tokens, tree);
+    Node* node = GetAddSub(tokens);
 $$$ printf("BIG BLACK COMMENT5\n");
 
     if(tokens[POS].oper != END)
@@ -69,63 +69,60 @@ char* LowString(char* str)
     return str;
 }
 
-Node* GetAddSub(struct Token* tokens, struct Tree* tree)
+Node* GetAddSub(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs1 pos = %u\n", POS);
-    Node* node = GetMulDiv(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs1.1 pos = %u\n", POS);
+
+    Node* new_node = GetMulDiv(tokens);
 
     while(tokens[POS].oper == ADD || tokens[POS].oper == SUB)
     {
-$$$ printf("ADD/SUB s1 pos = %u\n", POS);
         int op = tokens[POS].oper;
         POS += 1;
 
-        Node* node2 = GetMulDiv(tokens, tree);
+        Node* nodeleft = new_node;
+        Node* noderight = GetMulDiv(tokens);
 
         if(op == ADD)
-        {
-$$$ printf("ADD/SUB s1.1 pos = %u\n", POS);
-            return CreateOper(node, node2, ADD);
-        }
+            new_node = CreateOper(nodeleft, noderight, ADD);
 
         else
-            return CreateOper(node, node2, SUB);
+            new_node = CreateOper(nodeleft, noderight, SUB);
     }
 
-    return node;
+    return new_node;
 }
 
-Node* GetMulDiv(struct Token* tokens, struct Tree* tree)
+Node* GetMulDiv(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs2 pos = %u\n", POS);
-    Node* node = GetTrig(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs2.1 pos = %u\n", POS);
+
+    Node* new_node = GetTrig(tokens);
 
     while(tokens[POS].oper == MULT || tokens[POS].oper == DIV)
     {
         int op = tokens[POS].oper;
         POS += 1;
 
-        Node* node2 = GetTrig(tokens, tree);
+        Node* nodeleft = new_node;
+        Node* noderight = GetTrig(tokens);
         
-
         if(op == MULT)
-            return CreateOper(node, node2, MULT);
+            new_node = CreateOper(nodeleft, noderight, MULT);
 
         else
-            return CreateOper(node, node, DIV);
+            new_node = CreateOper(nodeleft, noderight, DIV);
     }
     
-    return node;
+    return new_node;
 }
 
-Node* GetTrig(struct Token* tokens, struct Tree* tree)
+Node* GetTrig(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs3 pos = %u\n", POS);
+
+    Node* new_node = GetLog(tokens);
+
     if(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
     {
         while(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
@@ -133,61 +130,59 @@ $$$ printf("BIG BLACK COMMENTs3 pos = %u\n", POS);
             int op = tokens[POS].oper;
             POS += 1;
 
-            Node* node = GetLog(tokens, tree);
+            Node* node = new_node;
 
             if(op == SIN)
-                return CreateOper(NULL, node, SIN);
+                new_node = CreateOper(NULL, node, SIN);
 
             else if(op == COS)
-                return CreateOper(NULL, node, COS);
+                new_node = CreateOper(NULL, node, COS);
 
             else
-                return CreateOper(NULL, node, TAN);
+                new_node = CreateOper(NULL, node, TAN);
         }
     }
 
-    Node* node = GetLog(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs3.1 pos = %u\n", POS);
-    return node;
+    return new_node;
 }
 
-Node* GetLog(struct Token* tokens, struct Tree* tree)
+Node* GetLog(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs4 pos = %u\n", POS);
-    Node* node = GetDeg(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs4.1 pos = %u\n", POS);
+
+    Node* new_node = GetDeg(tokens);
 
     while(tokens[POS].oper == LOG)
     {
         POS += 1;
 
-        Node* node2 = GetDeg(tokens, tree);
+        Node* node_left = new_node;
+        Node* noderight = GetDeg(tokens);
 
-        return CreateOper(node, node2, LOG);
+        return CreateOper(node_left, noderight, LOG);
     }
-    return node;
+    return new_node;
 }
 
-Node* GetDeg(struct Token* tokens, struct Tree* tree)
+Node* GetDeg(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs5 pos = %u\n", POS);
-    Node* node = GetBracket(tokens, tree);
-$$$ printf("BIG BLACK COMMENTs5.1 pos = %u\n", POS);
+
+    Node* new_node = GetBracket(tokens);
 
     while(tokens[POS].oper == POW)
     {
         POS += 1;
 
-        Node* node2 = GetBracket(tokens, tree);
+        Node* node_left = new_node;
+        Node* noderight = GetBracket(tokens);
 
-        return CreateOper(node, node2, POW);
+        return CreateOper(node_left, noderight, POW);
     }
-    return node;
+    return new_node;
 }
 
-Node* GetBracket(struct Token* tokens, struct Tree* tree)
+Node* GetBracket(struct Token* tokens)
 {
 $$$ assert(tokens);
 $$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
@@ -195,7 +190,7 @@ $$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
     {
         POS += 1;
 
-        Node* node = GetAddSub(tokens, tree);
+        Node* node = GetAddSub(tokens);
 
         if(tokens[POS].oper != CL_BR)
             SyntaxErr(tokens);
@@ -205,10 +200,10 @@ $$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
     }
 
     else
-        return GetNumVar(tokens, tree);
+        return GetNumVar(tokens);
 }
 
-Node* GetNumVar(struct Token* tokens, struct Tree* tree)
+Node* GetNumVar(struct Token* tokens)
 {
 $$$ assert(tokens);
 $$$ printf("BIG BLACK COMMENTs7 pos = %u\n", POS);
@@ -216,7 +211,7 @@ $$$ printf("BIG BLACK COMMENTs7 pos = %u\n", POS);
     if(tokens[POS].type == VAR)
     {
         POS += 1;
-$$$ printf("VAR pos = %u\n", POS);
+$$$ printf("VAR pos = %u %c\n", POS, tokens[POS - 1].var);
 
         Node* node = CreateVar(NULL, NULL, tokens[POS - 1].var);
 $$$ printf("VAR2 pos = %u\n", POS);
@@ -245,7 +240,7 @@ $$$ printf("Count of words = %u\n", count_words);
     unsigned int count_tokens = 0;
 
     unsigned int text_size = SymbolsCounter(text);
-$$$ printf("Count ofsymbols = %u\n", text_size);
+$$$ printf("Count of symbols = %u\n", text_size);
 
     unsigned int line = 1;
     unsigned int symbol = 1;
@@ -284,6 +279,7 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
 
             else if(text[i] == '+')
             {
+            $$$ printf("sum i = %d\n", i);
                 tokens[count_tokens].type = OPER;
                 tokens[count_tokens].oper = ADD;
             }
@@ -296,6 +292,7 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
 
             else if(text[i] == '*')
             {
+                $$$ printf("mult i = %d\n", i);
                 tokens[count_tokens].type = OPER;
                 tokens[count_tokens].oper = MULT;
             }
@@ -329,39 +326,44 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
 
             else if(isdigit(text[i]) != 0)
             {
+            $$$ printf("num i = %d\n", i);
                 tokens[count_tokens].type = NUM;
 
                 char* endp = NULL;
 
-                tokens[count_tokens].value = strtod(text, &endp);
+                tokens[count_tokens].value = strtod(text + i, &endp);
+            $$$ printf("text+i = %p endp = %p tokens[count_tokens].value = %g\n", text+i, endp, tokens[count_tokens].value);
 
-                i += (unsigned int) (endp - text);
+            $$$ printf("i = %d shift = %d\n", i, (endp - text));
+                //i += (unsigned int) (endp - text) - 1;
+            $$$ printf("i = %d\n", i);
             }
             
             else if(isalpha(text[i]) != 0)
             {
-                if(strncmp(text, "sin", sizeof("sin")/sizeof(char)) == 0)
+                $$$ printf("isalpha i = %d %s\n", i, text+i);
+                if(strncmp(text + i, "sin", sizeof("sin")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
                     tokens[count_tokens].oper = SIN;
                     i += 2;
                 }
 
-                else if(strncmp(text, "log", sizeof("log")/sizeof(char)) == 0)
+                else if(strncmp(text + i, "log", sizeof("log")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
                     tokens[count_tokens].oper = LOG;
                     i += 2;
                 }
 
-                else if(strncmp(text, "cos", sizeof("cos")/sizeof(char)) == 0)
+                else if(strncmp(text + i, "cos", sizeof("cos")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
                     tokens[count_tokens].oper = LOG;
                     i += 2;
                 }
 
-                else if(strncmp(text, "tan", sizeof("tan")/sizeof(char)) == 0)
+                else if(strncmp(text, "tan", sizeof("tan")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
                     tokens[count_tokens].oper = LOG;
@@ -372,6 +374,7 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
                 {
                     tokens[count_tokens].type = VAR;
                     tokens[count_tokens].var = text[i];
+                    $$$ printf("var i = %d\n", i);
                 }
             }
             

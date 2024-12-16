@@ -3,6 +3,6 @@
 
 #include "../tree/tree.h"
 
-Node* Parser(char* text, struct Tree* tree);
+Node* Parser(char* text);
 
 #endif //RECOVER_H

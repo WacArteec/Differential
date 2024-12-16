@@ -55,7 +55,6 @@ Node* CreateVar(struct Node* left, struct Node* right, char var)
     node->right = right;
 
     return node;
-
 }
 
 Node* CreateOper(struct Node* left, struct Node* right, Operations oper)
@@ -63,7 +62,7 @@ Node* CreateOper(struct Node* left, struct Node* right, Operations oper)
     struct Node* node = (Node*) calloc(1, sizeof(Node));
     assert(node);
 
-    node->type = NUM;
+    node->type = OPER;
     node->data.oper = oper;
 
     node->left  = left;
@@ -104,7 +103,7 @@ void PrintNode(FILE* stream, struct Node* node)
         else if(node->type == VAR)
             fprintf(stream, " %c ", node->data.var);
         
-        else if(node->type == OPER)
+        else if(node->type == NUM)
             fprintf(stream, " %g ", node->data.value);
 
         PrintNode(stream, node->left);
@@ -125,9 +124,11 @@ Node* DeleteNode(struct Node* node)
     if(node == NULL)
         return NULL;
 
+$$$ printf("DeleteNode\n");
     node->right = DeleteNode(node->right);
     node->right = DeleteNode(node->left);
 
+$$$ printf("freeNode\n");
     free(node);
 
     return NULL;

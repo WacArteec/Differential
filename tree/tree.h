@@ -44,7 +44,7 @@ enum Operations
 
 struct Tree;
 
- union Data
+union Data
 {
     double value;
     Operations oper;
