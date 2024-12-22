@@ -6,7 +6,7 @@ void PrintDiff(struct Node* node, FILE* stream)
     if(node == NULL)
         return;
         
-    fprintf(stream, "(");
+    fprintf(stream, "{");
 
     PrintDiff(node->left, stream);
 
@@ -18,75 +18,82 @@ void PrintDiff(struct Node* node, FILE* stream)
     
     else if(node->type == OPER)
     {
-        char action = 'D';
-
         switch (node->data.oper)
         {
             case ADD:
             {
-                action = '+';
+                fprintf(stream, "+");
+                PrintDiff(node->right, stream);
                 break;
             }
 
             case SUB:
             {
-                action = '-';
+                fprintf(stream, "-");
+                PrintDiff(node->right, stream);
                 break;
             }
             
             case MULT:
             {
-                action = '*';
+                fprintf(stream, "\\cdot");
+                PrintDiff(node->right, stream);
                 break;
             }
         
             case DIV:
             {
-                action = '/';
+                fprintf(stream, "\\over");
+                PrintDiff(node->right, stream);
                 break;
             }
             
             case POW:
             {
-                action = '^';
+                fprintf(stream, "^");
+                PrintDiff(node->right, stream);
                 break;
             }
             
             case LOG:
             {
-                action = 'l';
+                fprintf(stream, "\\log(");
+                PrintDiff(node->right, stream);
+                fprintf(stream, ")");
                 break;
             }
         
             case SIN:
             {
-                action = 's';
+                fprintf(stream, "\\sin(");
+                PrintDiff(node->right, stream);
+                fprintf(stream, ")");
                 break;
             }
             
             case COS:
             {
-                action = 'c';
+                fprintf(stream, "\\cos(");
+                PrintDiff(node->right, stream);
+                fprintf(stream, ")");
                 break;
             }
             
             case TAN:
             {
-                action = 't';
+                fprintf(stream, "\\tan(");
+                PrintDiff(node->right, stream);
+                fprintf(stream, ")");
                 break;
             }
         
             default:
                 break;
         }
-
-        fprintf(stream, "%c", action);
     }
 
     else
         fprintf(stream, "%p", node);
 
-    PrintDiff(node->right, stream);
-
-    fprintf(stream, ")");
+    fprintf(stream, "}");
 }

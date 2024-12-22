@@ -1,0 +1,16 @@
+digraph G{
+	rankdir=HR;
+	bgcolor = "#FFF0DB";
+	node0 [shape = Mrecord, style = filled, fillcolor = "#FFB02E", label = "Tree_addres: 000000000075FDE0 | root: 0000000000EB7D20 | size: 12"];
+	node_0000000000EB7D20 [shape = Mrecord, style = filled, fillcolor = "#C0FFC0", label = "{ addres: 0000000000EB7D20 | type: OPER | oper: 5 | left(yes): 0000000000000000 | right(no): 0000000000EB7A80 }"];
+	node_0000000000EB7A80 [shape = Mrecord, style = filled, fillcolor = "#FFFFE0", label = "{ addres: 0000000000EB7A80 | type: OPER | oper: 7 | left(yes): 0000000000EB7CF0 | right(no): 0000000000EB7AE0 }"];
+	node_0000000000EB7CF0 [shape = Mrecord, style = filled, fillcolor = "#87cefa", label = "{ addres: 0000000000EB7CF0 | type: NUM | value: 2 | left(yes):  0000000000000000 | right(no): 0000000000000000 }"];
+	node_0000000000EB7A80 -> node_0000000000EB7CF0 [color = "#000000"]
+
+	node_0000000000EB7AE0 [shape = Mrecord, style = filled, fillcolor = "#FFFFE0", label = "{ addres: 0000000000EB7AE0 | type: VAR | variable: x | left(yes): 0000000000000000 | right(no): 0000000000000000 }"];
+	node_0000000000EB7A80 -> node_0000000000EB7AE0 [color = "#000000"]
+
+	node_0000000000EB7D20 -> node_0000000000EB7A80 [color = "#000000"]
+
+	node0 -> node_0000000000EB7D20 [color = "#000000"]
+}

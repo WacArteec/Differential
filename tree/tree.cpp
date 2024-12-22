@@ -6,12 +6,12 @@
 
 const char* blue = "#87cefa";
 const char* yellow = "#FFFFE0";
-const char* green = "#177245";
+const char* green = "#C0FFC0";
 
 // add verificator and dump
 
 void PrintNode( FILE* stream, struct Node* node);
-int DotNode(FILE* dot_file, struct Node* node, Side agree, int parent_num);
+void DotNode(FILE* dot_file, struct Node* node, Side side);
 
 // add asserts
 
@@ -31,6 +31,7 @@ void Ctor(struct Tree* tree)
 Node* CreateNum(struct Node* left, struct Node* right, float value)
 {
     struct Node* node = (Node*) calloc(1, sizeof(Node));
+$$$ printf("%d NUM\n", __LINE__);
     assert(node);
 
     node->type = NUM;
@@ -40,12 +41,12 @@ Node* CreateNum(struct Node* left, struct Node* right, float value)
     node->right = right;
 
     return node;
-
 }
 
 Node* CreateVar(struct Node* left, struct Node* right, char var)
 {
     struct Node* node = (Node*) calloc(1, sizeof(Node));
+    $$$ printf("cereate var\n");
     assert(node);
 
     node->type = VAR;
@@ -95,7 +96,7 @@ void PrintNode(FILE* stream, struct Node* node)
 
     if(node != NULL)
     {
-        fprintf(stream, "( %d ", node->type);
+        fprintf(stream, " ( %d ", node->type);
 
         if(node->type == OPER)
             fprintf(stream, " %d ", node->data.oper);
@@ -109,7 +110,7 @@ void PrintNode(FILE* stream, struct Node* node)
         PrintNode(stream, node->left);
         PrintNode(stream, node->right);
 
-        fprintf(stream, " )");
+        fprintf(stream, " ) ");
     }
 
     else
@@ -158,23 +159,25 @@ $$$ printf("\n\n%d\n\n", __LINE__);
 	fprintf(dot_file, "\tnode0 [shape = Mrecord, style = filled, fillcolor = \"#FFB02E\", label = \"Tree_addres: %p | root: %p | size: %u\"];\n", 
                                                                                                                  tree,      tree->root,tree->size);
 
-    DotNode(dot_file, tree->root, ZERO, 0);
+    DotNode(dot_file, tree->root, ZERO);
 
-    fprintf(dot_file, "\tnode0 -> node1 [color = \"#000000\"]\n}");
+    fprintf(dot_file, "\tnode0 -> node_%p [color = \"#000000\"]\n}", tree->root);
 
     fclose(dot_file);
 
+$$$ printf("before system\n");
     system("dot -Tpng -O Tree.dot");
-    system("Tree.dot.png");
+$$$ printf("inside system\n");
+    system("start Tree.dot.png");
+$$$ printf("after system\n");
 }
 
-int DotNode(FILE* dot_file, struct Node* node, Side side, int parent_num)
+void DotNode(FILE* dot_file, struct Node* node, Side side)
 {
     const char* color = "#000000";
-    int current_num = parent_num + 1;
 
     if(node == NULL)
-        return 0;
+        return;
 
     switch (side)
     {
@@ -201,26 +204,24 @@ int DotNode(FILE* dot_file, struct Node* node, Side side, int parent_num)
     }
     
     if(node->type == OPER)
-	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: OPER | oper: %d | left(yes): %p | right(no): %p \"];\n", 
-                                 parent_num + 1,                                    color,                  node,                   node->data.oper,node->left,     node->right);
+	    fprintf(dot_file, "\tnode_%p [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"{ addres: %p | type: OPER | oper: %d | left(yes): %p | right(no): %p }\"];\n", 
+                                  node,                                              color,                  node,                     node->data.oper,node->left,     node->right);
 
     else if(node->type == VAR)
-	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: VAR | variable: %c | left(yes): %p | right(no): %p \"];\n", 
-                                 parent_num + 1,                                    color,                  node,                      node->data.var, node->left,     node->right);
+	    fprintf(dot_file, "\tnode_%p [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"{ addres: %p | type: VAR | variable: %c | left(yes): %p | right(no): %p }\"];\n", 
+                                  node,                                              color,                  node,                      node->data.var, node->left,     node->right);
     
     else if(node->type == NUM)
-	    fprintf(dot_file, "\tnode%d [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"addres: %p | type: NUM | value: %d | left(yes):  %p | right(no): %p \"];\n", 
-                                 parent_num + 1,                                    color,                  node,                   node->data.value,node->left,     node->right);
+	    fprintf(dot_file, "\tnode_%p [shape = Mrecord, style = filled, fillcolor = \"%s\", label = \"{ addres: %p | type: NUM | value: %g | left(yes):  %p | right(no): %p }\"];\n", 
+                                  node,                                              color,                  node,                     node->data.value,node->left,     node->right);
     
-    int left_child_num = DotNode(dot_file, node->left, LEFT, current_num);
+    DotNode(dot_file, node->left, LEFT);
 
-    if(left_child_num != 0)
-        fprintf(dot_file, "\tnode%d -> node%d [color = \"#000000\"\"]\n\n", current_num, left_child_num);
+    if(node->left != NULL)
+        fprintf(dot_file, "\tnode_%p -> node_%p [color = \"#000000\"]\n\n", node, node->left);
 
-    int right_child_num = DotNode(dot_file, node->right, RIGHT, left_child_num);
+    DotNode(dot_file, node->right, RIGHT);
     
-    if(right_child_num != 0)
-        fprintf(dot_file, "\tnode%d -> node%d [color = \"#000000\"\"]\n\n", current_num, right_child_num);
-
-    return current_num;
+    if(node->right != NULL)
+        fprintf(dot_file, "\tnode_%p -> node_%p [color = \"#000000\"]\n\n", node, node->right);
 }

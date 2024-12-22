@@ -2,58 +2,39 @@
 #include <math.h>
 
 #include "differential.h"
+#include "printdiff.h"
 #include "../tree/tree.h"
 
-double AIM = 1.0e-10;
 double e = 2.71828182845905;
 
-enum Error
-{
-    DIV_0,
-    POW_0,
-    LOG_0
-};
+Node *Diff(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffAdd(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffSub(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffMult(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffDiv(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffPow(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffLog(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffSin(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffCos(struct Node *node, struct Tree *tree, FILE *stream);
+Node *DiffTan(struct Node *node, struct Tree *tree, FILE *stream);
 
-Node *Copy(struct Node *node, struct Tree *tree);
-Node *Diff   (struct Node *node, struct Tree *tree);
-Node *DiffAdd(struct Node *node, struct Tree *tree);
-Node *DiffSub(struct Node *node, struct Tree *tree);
-Node *DiffMult(struct Node *node, struct Tree *tree);
-Node *DiffDiv(struct Node *node, struct Tree *tree);
-Node *DiffPow(struct Node *node, struct Tree *tree);
-Node *DiffLog(struct Node *node, struct Tree *tree);
-Node *DiffSin(struct Node *node, struct Tree *tree);
-Node *DiffCos(struct Node *node, struct Tree *tree);
-Node *DiffTan(struct Node *node, struct Tree *tree);
-int CmpDoubles(double num1, double num2, double accuracy);
-Node *NumSimpler(struct Node *node, struct Tree *tree);
-void VarSimpler(struct Node *node, struct Tree *tree);
-Node *AddSimpler(struct Node *node, struct Tree *tree);
-Node *SubSimpler(struct Node *node, struct Tree *tree);
-Node *MultSimpler(struct Node *node, struct Tree *tree);
-Node *DivSimpler(struct Node *node, struct Tree *tree);
-Node *PowSimpler(struct Node *node, struct Tree *tree);
-Node *LogSimpler(struct Node *node, struct Tree *tree);
-Node *TrigSimpler(struct Node *node, struct Tree *tree);
-void MathErr(struct Node *node, Error error);
-
-Node* DiffTree(struct Node *node, struct Tree *tree)
+Node *DiffTree(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node* new_node = Diff(node, tree);
+    Node *new_node = Diff(node, tree, stream);
 
     node = DeleteNode(node);
-$$$ printf("new_node = %p\n", new_node);
+    $$$ printf("new_node = %p\n", new_node);
 
     return new_node;
 }
 
-Node *Diff(struct Node *node, struct Tree *tree)
+Node *Diff(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node* new_node = NULL;
+    Node *new_node = NULL;
 
     if (node->type == NUM)
     {
-$$$ printf("diff num\n");
+        $$$ printf("diff num\n");
         tree->size += 0;
 
         new_node = CreateNum(NULL, NULL, 0);
@@ -61,7 +42,7 @@ $$$ printf("diff num\n");
 
     else if (node->type == VAR)
     {
-$$$ printf("diff var\n");
+        $$$ printf("diff var\n");
         tree->size += 0;
 
         new_node = CreateNum(NULL, NULL, 1);
@@ -70,31 +51,31 @@ $$$ printf("diff var\n");
     else if (node->type == OPER)
     {
         if (node->data.oper == ADD)
-            new_node = DiffAdd(node, tree);
+            new_node = DiffAdd(node, tree, stream);
 
         else if (node->data.oper == SUB)
-            new_node = DiffSub(node, tree);
+            new_node = DiffSub(node, tree, stream);
 
         else if (node->data.oper == MULT)
-            new_node = DiffMult(node, tree);
+            new_node = DiffMult(node, tree, stream);
 
         else if (node->data.oper == DIV)
-            new_node = DiffDiv(node, tree);
+            new_node = DiffDiv(node, tree, stream);
 
         else if (node->data.oper == POW)
-            new_node = DiffPow(node, tree);
+            new_node = DiffPow(node, tree, stream);
 
         else if (node->data.oper == LOG)
-            new_node = DiffLog(node, tree);
+            new_node = DiffLog(node, tree, stream);
 
         else if (node->data.oper == SIN)
-            new_node = DiffSin(node, tree);
+            new_node = DiffSin(node, tree, stream);
 
         else if (node->data.oper == COS)
-            new_node = DiffCos(node, tree);
+            new_node = DiffCos(node, tree, stream);
 
         else if (node->data.oper == TAN)
-            new_node = DiffTan(node, tree);
+            new_node = DiffTan(node, tree, stream);
     }
 
     else
@@ -103,78 +84,88 @@ $$$ printf("diff var\n");
         exit(1);
     }
 
-    return node;
+    return new_node;
 }
 
-Node *Copy(struct Node *node, struct Tree *tree)
+Node *DiffAdd(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node* new_node = NULL;
+    $$$ printf("diff add\n");
 
-    if (node != NULL)
-    {
-        tree->size += 1;
-$$$ printf("BIG BLACK COMMENT Copy left = %p right = %p\n", node->left, node->right);
+    assert(node->left);
+    Node *diff_left = Diff(node->left, tree, stream);
+    Node *diff_right = Diff(node->right, tree, stream);
 
-        Node* left_node  = Copy(node->left, tree);
-$$$ printf("BIG BLACK COMMENT CopyLeft = %p Good\n", left_node);
-        Node* right_node = Copy(node->right, tree);
-$$$ printf("BIG BLACK COMMENT CopyRight = %p Good\n", right_node);    
+    $$$ printf("diff left = %p value = %g diff right = %p value = %g\n", diff_left, diff_left->data.value, diff_right, diff_right->data.value);
 
-        if(node->type == NUM)
-            new_node = CreateNum(left_node, right_node, node->data.value);
+    Node* new_node = CreateOper(diff_left, diff_right, ADD);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
 
-        else if(node->type == VAR)
-            new_node = CreateVar(left_node, right_node, node->data.var);
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
 
-        else if(node->type == OPER)
-            new_node = CreateOper(left_node, right_node, node->data.oper);
-
-$$$ printf("BIG BLACK COMMENT Copy Good\n");
-
-        return new_node;
-    }
-
-    else
-        return NULL;
+    return new_node;
 }
 
-Node *DiffAdd(struct Node *node, struct Tree *tree)
+Node *DiffSub(struct Node *node, struct Tree *tree, FILE *stream)
 {
-$$$ printf("diff add\n");
-    Node *diff_left  = Diff(node->left, tree);
-    Node *diff_right = Diff(node->right, tree);
+    assert(node->left);
 
-    return CreateOper(diff_left, diff_right, ADD);
+    Node *diff_left = Diff(node->left, tree, stream);
+    Node *diff_right = Diff(node->right, tree, stream);
+
+    Node* new_node = CreateOper(diff_left, diff_right, SUB);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffSub(struct Node *node, struct Tree *tree)
+Node *DiffMult(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node *diff_left = Diff(node->left, tree);
-    Node *diff_right = Diff(node->right, tree);
-
-    return CreateOper(diff_left, diff_right, SUB);
-}
-
-Node *DiffMult(struct Node *node, struct Tree *tree)
-{
-$$$ printf("diff mult\n");
-    Node *diff_diff_left = Diff(node->left, tree);
+    assert(node->left);
+    $$$ printf("diff mult\n");
+    Node *diff_diff_left = Diff(node->left, tree, stream);
     Node *diff_left = CreateOper(diff_diff_left, Copy(node->right, tree), MULT);
 
-    Node *diff_diff_right = Diff(node->right, tree);
+    Node *diff_diff_right = Diff(node->right, tree, stream);
     Node *diff_right = CreateOper(Copy(node->left, tree), diff_diff_right, MULT);
 
     tree->size += 2; // from 3( A * B ) to 7( A' * B + A * B' ) - 2 copies
 
-    return CreateOper(diff_left, diff_right, ADD);
+    Node* new_node = CreateOper(diff_left, diff_right, ADD);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffDiv(struct Node *node, struct Tree *tree)
+Node *DiffDiv(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node *diff_nom_left = Diff(node->left, tree);
+    assert(node->left);
+
+    Node *diff_nom_left = Diff(node->left, tree, stream);
     Node *nom_left = CreateOper(diff_nom_left, Copy(node->right, tree), MULT);
 
-    Node *diff_nom_right = Diff(node->right, tree);
+    Node *diff_nom_right = Diff(node->right, tree, stream);
     Node *nom_right = CreateOper(Copy(node->left, tree), diff_nom_right, MULT);
 
     Node *diff_left = CreateOper(nom_left, nom_right, SUB);
@@ -186,18 +177,33 @@ Node *DiffDiv(struct Node *node, struct Tree *tree)
 
     tree->size += 4; // from 3 (A / B) to 11 ( (A' * B - A * B') / (B * B) ) - 4 copies
 
-    return CreateOper(diff_left, diff_right, DIV);
+    Node* new_node = CreateOper(diff_left, diff_right, DIV);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffPow(struct Node *node, struct Tree *tree) // некрасиво написана, но не знаю как переписать
+Node *DiffPow(struct Node *node, struct Tree *tree, FILE *stream) // некрасиво написана, но не знаю как переписать
 {
+    assert(node);
+    assert(node->left);
+    assert(node->right);
+
     Node *number_e = CreateNum(NULL, NULL, e);
     Node *ln = CreateOper(number_e, Copy(node->left, tree), LOG);
 
-    Node *diff_add1 = Diff(node->right, tree);
+    Node *diff_add1 = Diff(node->right, tree, stream);
     Node *add1 = CreateOper(ln, diff_add1, MULT);
 
-    Node *diff_mult_in_add2 = Diff(node->left, tree);
+    Node *diff_mult_in_add2 = Diff(node->left, tree, stream);
     Node *mult_in_add2 = CreateOper(Copy(node->right, tree), diff_mult_in_add2, MULT);
 
     Node *add2 = CreateOper(mult_in_add2, Copy(node->left, tree), DIV);
@@ -208,15 +214,28 @@ Node *DiffPow(struct Node *node, struct Tree *tree) // некрасиво нап
 
     tree->size += 6; // from 3 ( A ^ B ) to 15 ( ( LOG(e, A) * B' + A' * B / A ) * (A ^ B) ) - 6 copies
 
-    return CreateOper(diff_left, diff_right, MULT);
+    Node* new_node = CreateOper(diff_left, diff_right, MULT);
+    Node* simpled_new = TreeSimpler(new_node, tree, stream);
+    
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(simpled_new, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffLog(struct Node *node, struct Tree *tree)
+Node *DiffLog(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node *diff_nom_left = Diff(node->right, tree);
+    assert(node->left);
+
+    Node *diff_nom_left = Diff(node->right, tree, stream);
     Node *nom_left = CreateOper(diff_nom_left, Copy(node->right, tree), MULT);
 
-    Node *diff_nom_right = Diff(node->left, tree);
+    Node *diff_nom_right = Diff(node->left, tree, stream);
 
     Node *nom_right_mult = CreateOper(diff_nom_right, Copy(node, tree), MULT);
     Node *nom_right = CreateOper(nom_right_mult, Copy(node->left, tree), DIV);
@@ -230,41 +249,81 @@ Node *DiffLog(struct Node *node, struct Tree *tree)
 
     tree->size += 6; // from 3 log(A, B) to 15 ( (B' / B - A' * log(A, B) / A) / log(e, B) ) - 6 copies
 
-    return CreateOper(diff_left, diff_right, DIV);
+    Node* new_node = CreateOper(diff_left, diff_right, DIV);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffSin(struct Node *node, struct Tree *tree)
+Node *DiffSin(struct Node *node, struct Tree *tree, FILE *stream)
 {
-$$$ printf("VAR2 pos = \n");
-    Node *diff_left = Diff(node->right, tree);
-$$$ printf("VAR2 sin = \n");
+    //assert(node->left);
 
+    $$$ printf("VAR2 pos = \n");
     Node *diff_right = CreateOper(NULL, Copy(node->right, tree), COS);
-$$$ printf("VAR2 sin = \n");
+
+    Node *diff_left = Diff(node->right, tree, stream);
+    $$$ printf("VAR2 sin = \n");
+
+    $$$ printf("VAR2 sin = \n");
 
     tree->size += 3; // from 2( sin(A) ) to 6( 1 * A' * cos(A) ) - 1 copy
-    
-$$$ printf("sin left = %p right = %p\n", diff_left, diff_right);
 
-    return CreateOper(diff_left, diff_right, MULT);
+    $$$ printf("sin left = %p right = %p\n", diff_left, diff_right);
+
+    Node* new_node = CreateOper(diff_left, diff_right, MULT);
+    Node* simpled_new = TreeSimpler(new_node, tree, stream);
+    
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(simpled_new, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffCos(struct Node *node, struct Tree *tree)
+Node *DiffCos(struct Node *node, struct Tree *tree, FILE *stream)
 {
+    assert(node->left);
+
     Node *num_minus1 = CreateNum(NULL, NULL, -1);
-    Node *diff_in_diff_left = Diff(node->left, tree);
+    Node *diff_in_diff_left = Diff(node->left, tree, stream);
     Node *diff_left = CreateOper(diff_in_diff_left, num_minus1, MULT);
 
     Node *diff_right = CreateOper(NULL, Copy(node->right, tree), SIN);
 
     tree->size += 3; // from 2( cos(A) ) to 6( (-1) * A' * sin(A) ) - 1 copy
 
-    return CreateOper(diff_left, diff_right, MULT);
+    Node* new_node = CreateOper(diff_left, diff_right, MULT);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+    
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
+
+    return new_node;
 }
 
-Node *DiffTan(struct Node *node, struct Tree *tree)
+Node *DiffTan(struct Node *node, struct Tree *tree, FILE *stream)
 {
-    Node *diff_left = Diff(node->left, tree);
+    assert(node->left);
+
+    Node *diff_left = Diff(node->left, tree, stream);
 
     Node *cos1 = CreateOper(NULL, Copy(node->right, tree), COS);
     Node *cos2 = CreateOper(NULL, Copy(node->right, tree), COS);
@@ -273,19 +332,18 @@ Node *DiffTan(struct Node *node, struct Tree *tree)
 
     tree->size += 3; // from 2( tan(A) ) to 7( A' / (cos(A) * cos(A)) ) - 2 copies
 
-    return CreateOper(diff_left, diff_right, DIV);
-}
+    Node* new_node = CreateOper(diff_left, diff_right, DIV);
+    //Node* simpled_new = TreeSimpler(new_node, tree, stream);
+    
+    fprintf(stream, "Clearly:\n $$d(");
+    PrintDiff(node, stream);
+    fprintf(stream, ") = ");
+    PrintDiff(new_node, stream);
+    fprintf(stream, " = ");
+    //PrintDiff(simpled_new, stream);
+    fprintf(stream, "$$\n");
 
-int CmpDoubles(double num1, double num2, double accuracy)
-{
-    if (num1 - num2 < accuracy)
-        return 0;
-
-    else if (num1 - num2 > 0)
-        return 1;
-
-    else
-        return -1;
+    return new_node;
 }
 
 /*void Simpler(struct Tree* tree)
@@ -301,452 +359,4 @@ int CmpDoubles(double num1, double num2, double accuracy)
     }
 }*/
 
-Node *TreeSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node == NULL || node->type != OPER)
-        return node;
 
-    else
-    {
-        if (node->left->left == NULL && node->left->right == NULL && node->right->left == NULL && node->right->right == NULL)
-        {
-            if (node->data.oper == ADD)
-                AddSimpler(node, tree);
-
-            else if (node->data.oper == SUB)
-                SubSimpler(node, tree);
-
-            else if (node->data.oper == MULT)
-                MultSimpler(node, tree);
-
-            else if (node->data.oper == DIV)
-                DivSimpler(node, tree);
-
-            else if (node->data.oper == POW)
-                PowSimpler(node, tree);
-
-            else if (node->data.oper == LOG)
-                LogSimpler(node, tree);
-
-            else
-                TrigSimpler(node, tree);
-        }
-
-        else
-        {
-            node->left = TreeSimpler(node->left, tree);
-            node->right = TreeSimpler(node->right, tree);
-
-            return TreeSimpler(node, tree);
-        }
-    }
-
-    return NULL;
-}
-
-Node *AddSimpler(struct Node *node, struct Tree *tree)
-{
-$$$ printf("BIG BLACK COMMENT AS\n");
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-$$$ printf("BIG BLACK COMMENT AS1\n");
-        Node *num = CreateNum(NULL, NULL, 2);
-        Node *var = Copy(node->right, tree);
-
-        node = DeleteNode(node);
-
-        return CreateOper(num, var, MULT);
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
-    {
-$$$ printf("BIG BLACK COMMENT AS2\n");
-        Node* newnode = NULL;
-        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
-            newnode = Copy(node->left, tree);
-
-$$$ printf("BIG BLACK COMMENT AS2.1\n");
-
-        if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
-            newnode = Copy(node->right, tree);
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        node = newnode;
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-$$$ printf("BIG BLACK COMMENT AS3\n");
-        node->data.value = node->left->data.value + node->right->data.value;
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-$$$ printf("BIG BLACK COMMENT AS4\n");
-
-    return node;
-}
-
-Node *SubSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-        node->type = NUM;
-
-        node->data.value = 0;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
-    {
-        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
-        {
-            node = Copy(node->left, tree);
-
-            node->left  = DeleteNode(node->left);
-            node->right = DeleteNode(node->right);
-        }
-
-        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
-        {
-            node->data.oper = MULT;
-
-            node->left->data.value = -1;
-        }
-
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-        node->data.value = node->left->data.value - node->right->data.value;
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    return node;
-}
-
-Node *MultSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-        node->data.oper = POW;
-
-        node->right->type = NUM;
-        node->right->data.value = 2;
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
-    {
-        node->type = VAR;
-        node->data.value = node->right->data.value + node->left->data.value;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 1, AIM) == 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0))
-    {
-        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
-            node = Copy(node->left, tree);
-
-        if (node->right->type == VAR && CmpDoubles(node->left->data.value, 1, AIM) == 0)
-            node = Copy(node->right, tree);
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-        node->data.value = node->left->data.value * node->right->data.value;
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    return node;
-}
-
-Node *DivSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-        node->type = NUM;
-        node->data.value = 1;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
-    {
-        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
-            MathErr(node, DIV_0);
-
-        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
-        {
-            node->type = NUM;
-            node->data.value = 0;
-
-            node->left  = DeleteNode(node->left);
-            node->right = DeleteNode(node->right);
-
-            return node;
-        }
-    }
-
-    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
-    {
-        node = Copy(node->left, tree);
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-        if (CmpDoubles(node->right->data.value, 0, AIM) == 0)
-            MathErr(node, DIV_0);
-
-        node->data.value = node->left->data.value * node->right->data.value;
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    return node;
-}
-
-Node *PowSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-        node->type = NUM;
-        node->data.value = 1;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (CmpDoubles(node->right->data.value, 0, AIM) == 0 || CmpDoubles(node->left->data.value, 0, AIM) == 0))
-    {
-        if (node->left->type == VAR && CmpDoubles(node->right->data.value, 0, AIM) == 0)
-            MathErr(node, DIV_0);
-
-        else if (node->right->type == VAR && CmpDoubles(node->left->data.value, 0, AIM) == 0)
-        {
-            node->type = NUM;
-
-            node->data.value = 0;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-            return node;
-        }
-    }
-
-    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
-    {
-        node = Copy(node->left, tree);
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-        if (node->left->data.value <= 0 && node->right->data.value <= 0)
-            MathErr(node, POW_0);
-
-        node->data.value = pow(node->left->data.value, node->right->data.value);
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    return node;
-}
-
-Node *LogSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->left->type == VAR && node->right->type == VAR && CmpDoubles(node->left->data.value, node->right->data.value, AIM) == 0)
-    {
-        node->type = NUM;
-        node->data.value = 1;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if ((node->left->type == VAR || node->right->type == VAR) && (node->right->data.value <= 0 || node->left->data.value <= 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0))
-    {
-        MathErr(node, LOG_0);
-    }
-
-    else if (node->left->type == VAR && CmpDoubles(node->right->data.value, 1, AIM) == 0)
-    {
-        node->type = NUM;
-
-        node->data.value = 0;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    else if (node->left->type == NUM || node->right->type == NUM)
-    {
-        if (node->left->data.value <= 0 || node->right->data.value <= 0 || CmpDoubles(node->left->data.value, 1, AIM) == 0 || CmpDoubles(node->right->data.value, 1, AIM) == 0)
-            MathErr(node, LOG_0);
-
-        node->data.value = log(node->right->data.value) / log(node->left->data.value);
-
-        node->type = NUM;
-
-        node->left  = DeleteNode(node->left);
-        node->right = DeleteNode(node->right);
-
-        return node;
-    }
-
-    return node;
-}
-
-Node *TrigSimpler(struct Node *node, struct Tree *tree)
-{
-    if (node->data.oper == SIN)
-    {
-        if (node->right->type == VAR)
-        {
-            return node;
-        }
-
-        else if (node->right->type == NUM)
-        {
-            node->data.value = sin(node->right->data.value);
-
-            node->type = NUM;
-
-            node->left  = DeleteNode(node->left);
-            node->right = DeleteNode(node->right);
-
-            return node;
-        }
-    }
-
-    else if (node->data.oper == COS)
-    {
-        if (node->right->type == VAR)
-        {
-            return node;
-        }
-
-        else if (node->right->type == NUM)
-        {
-            node->data.value = cos(node->right->data.value);
-
-            node->type = NUM;
-
-            node->left  = DeleteNode(node->left);
-            node->right = DeleteNode(node->right);
-
-            return node;
-        }
-    }
-
-    else if (node->data.oper == TAN)
-    {
-        if (node->right->type == VAR)
-        {
-            return node;
-        }
-
-        else if (node->right->type == NUM)
-        {
-            node->data.value = tan(node->right->data.value);
-
-            node->type = NUM;
-
-            node->left  = DeleteNode(node->left);
-            node->right = DeleteNode(node->right);
-
-            return node;
-        }
-    }
-
-    return node;
-}
-
-void MathErr(struct Node *node, Error error)
-{
-    switch (error)
-    {
-    case DIV_0:
-
-        printf("YOU TRY TO DIVIDE BY ZERO\n");
-        break;
-
-    case POW_0:
-
-        printf("YOU TRY TO POW SMTH LESS ZERO BY DEGREE LESS ZERO\n");
-        break;
-
-    case LOG_0:
-
-        printf("YOUR LOG BASIS LESS THAN ZERO OR EQUAL ONE\n");
-        break;
-
-    default:
-        break;
-    }
-
-    exit(1);
-}

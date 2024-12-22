@@ -1,6 +1,6 @@
 #ifndef TREE_H
 #define TREE_H
-#define $$$
+#define $$$ if(0)
 
 #include <stdio.h>
 #include <stdlib.h>

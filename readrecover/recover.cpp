@@ -29,9 +29,9 @@ unsigned int SymbolsCounter(char* str);
 void LexicErr(unsigned int line, unsigned int symbol);
 Node* GetAddSub (struct Token* tokens);
 Node* GetMulDiv (struct Token* tokens);
-Node* GetTrig   (struct Token* tokens);
 Node* GetLog    (struct Token* tokens);
 Node* GetDeg    (struct Token* tokens);
+Node* GetTrig   (struct Token* tokens);
 Node* GetBracket(struct Token* tokens);
 Node* GetNumVar (struct Token* tokens);
 void SyntaxErr(struct Token* tokens);
@@ -97,7 +97,7 @@ Node* GetMulDiv(struct Token* tokens)
 {
 $$$ assert(tokens);
 
-    Node* new_node = GetTrig(tokens);
+    Node* new_node = GetLog(tokens);
 
     while(tokens[POS].oper == MULT || tokens[POS].oper == DIV)
     {
@@ -105,7 +105,7 @@ $$$ assert(tokens);
         POS += 1;
 
         Node* nodeleft = new_node;
-        Node* noderight = GetTrig(tokens);
+        Node* noderight = GetLog(tokens);
         
         if(op == MULT)
             new_node = CreateOper(nodeleft, noderight, MULT);
@@ -114,35 +114,6 @@ $$$ assert(tokens);
             new_node = CreateOper(nodeleft, noderight, DIV);
     }
     
-    return new_node;
-}
-
-Node* GetTrig(struct Token* tokens)
-{
-$$$ assert(tokens);
-
-    Node* new_node = GetLog(tokens);
-
-    if(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
-    {
-        while(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
-        {
-            int op = tokens[POS].oper;
-            POS += 1;
-
-            Node* node = new_node;
-
-            if(op == SIN)
-                new_node = CreateOper(NULL, node, SIN);
-
-            else if(op == COS)
-                new_node = CreateOper(NULL, node, COS);
-
-            else
-                new_node = CreateOper(NULL, node, TAN);
-        }
-    }
-
     return new_node;
 }
 
@@ -161,6 +132,7 @@ $$$ assert(tokens);
 
         return CreateOper(node_left, noderight, LOG);
     }
+
     return new_node;
 }
 
@@ -168,24 +140,55 @@ Node* GetDeg(struct Token* tokens)
 {
 $$$ assert(tokens);
 
-    Node* new_node = GetBracket(tokens);
+    Node* new_node = GetTrig(tokens);
 
     while(tokens[POS].oper == POW)
     {
         POS += 1;
 
         Node* node_left = new_node;
-        Node* noderight = GetBracket(tokens);
+        Node* noderight = GetTrig(tokens);
 
         return CreateOper(node_left, noderight, POW);
     }
+
+    return new_node;
+}
+
+Node* GetTrig(struct Token* tokens)
+{
+$$$ assert(tokens);
+
+    Node* new_node = GetBracket(tokens);
+
+    if(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
+    {
+    //$$$ printf("Trigo\n");
+        while(tokens[POS].oper == SIN || tokens[POS].oper == COS || tokens[POS].oper == TAN)
+        {
+            int op = tokens[POS].oper;
+            POS += 1;
+
+            Node* node = GetBracket(tokens);
+
+            if(op == SIN)
+                new_node = CreateOper(NULL, node, SIN);
+
+            else if(op == COS)
+                new_node = CreateOper(NULL, node, COS);
+
+            else
+                new_node = CreateOper(NULL, node, TAN);
+        }
+    }
+
     return new_node;
 }
 
 Node* GetBracket(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
+//$$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
     if(tokens[POS].oper == OP_BR)
     {
         POS += 1;
@@ -196,6 +199,7 @@ $$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
             SyntaxErr(tokens);
     
         POS += 1;
+
         return node;
     }
 
@@ -206,34 +210,36 @@ $$$ printf("BIG BLACK COMMENTs6 pos = %u\n", POS);
 Node* GetNumVar(struct Token* tokens)
 {
 $$$ assert(tokens);
-$$$ printf("BIG BLACK COMMENTs7 pos = %u\n", POS);
+//$$$ printf("BIG BLACK COMMENTs7 pos = %u\n", POS);
 
     if(tokens[POS].type == VAR)
     {
         POS += 1;
-$$$ printf("VAR pos = %u %c\n", POS, tokens[POS - 1].var);
+//$$$ printf("VAR pos = %u var = %c\n", POS, tokens[POS - 1].var);
 
         Node* node = CreateVar(NULL, NULL, tokens[POS - 1].var);
-$$$ printf("VAR2 pos = %u\n", POS);
+//$$$ printf("VAR2 pos = %u node = %p\n", POS, node);
         return node;
     }
 
     if(tokens[POS].type == NUM)
     {
         POS += 1;
-$$$ printf("NUM pos = %u\n", POS);
+//$$$ printf("%d NUM pos = %u\n", __LINE__, POS);
         Node* node = CreateNum(NULL, NULL, tokens[POS - 1].value);
+//$$$ printf("%d NUM pos = %u\n", __LINE__, POS);
         return node;
     }
 
     else
         return NULL;
 
+
 }
 
 Token* LexicalAnalis(char* text)
 {
-    unsigned int count_words = WordsCounter(text) + 1;
+    unsigned int count_words = WordsCounter(text) + 10;
 $$$ printf("Count of words = %u\n", count_words);
     Token* tokens = (Token*) calloc(count_words, sizeof(Token));
 
@@ -267,12 +273,14 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
 
             if(text[i] == '(')
             {
+            $$$ printf("Open Br i = %d\n", i);
                 tokens[count_tokens].type = OPER;
                 tokens[count_tokens].oper = OP_BR;
             }
 
             else if(text[i] == ')')
             {
+            $$$ printf("Close Br i = %d\n", i);
                 tokens[count_tokens].type = OPER;
                 tokens[count_tokens].oper = CL_BR;
             }
@@ -332,10 +340,10 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
                 char* endp = NULL;
 
                 tokens[count_tokens].value = strtod(text + i, &endp);
-            $$$ printf("text+i = %p endp = %p tokens[count_tokens].value = %g\n", text+i, endp, tokens[count_tokens].value);
+            $$$ printf("value = %g text+i = %p endp = %p tokens[count_tokens].value = %g\n", tokens[count_tokens].value, text+i, endp, tokens[count_tokens].value);
 
             $$$ printf("i = %d shift = %d\n", i, (endp - text));
-                //i += (unsigned int) (endp - text) - 1;
+                i += (unsigned int) (endp - text) - i - 1;
             $$$ printf("i = %d\n", i);
             }
             
@@ -359,14 +367,14 @@ $$$ printf("BIG BLACK COMMENT%d\n", i);
                 else if(strncmp(text + i, "cos", sizeof("cos")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
-                    tokens[count_tokens].oper = LOG;
+                    tokens[count_tokens].oper = COS;
                     i += 2;
                 }
 
                 else if(strncmp(text, "tan", sizeof("tan")/sizeof(char) - 1) == 0)
                 {
                     tokens[count_tokens].type = OPER;
-                    tokens[count_tokens].oper = LOG;
+                    tokens[count_tokens].oper = TAN;
                     i += 2;
                 }
                 
@@ -394,7 +402,7 @@ unsigned int WordsCounter(char* str)
     while(str[pos] != '\0')
     {
 
-        if((isdigit(str[pos - 1]) != isdigit(str[pos]) || isalpha(str[pos - 1]) != isalpha(str[pos])) && str[pos] != ' ' && str[pos] != '.' && str[pos - 1] != '.')
+        if((isdigit(str[pos - 1]) != isdigit(str[pos]) || isalpha(str[pos - 1]) != isalpha(str[pos])) && str[pos] != ' ' && str[pos] != '.')
             count += 1;
 
         pos += 1;
